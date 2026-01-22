@@ -50,7 +50,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: ecs-task-definition.json # local file in repo
-          container-name: node-app
+          container-name: background-processor
           image: ${{ steps.build-image.outputs.image }}
 
       - name: Deploy to ECS
