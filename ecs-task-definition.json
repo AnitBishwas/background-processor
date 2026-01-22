@@ -1,0 +1,156 @@
+{
+  "family": "background-processor-task",
+  "containerDefinitions": [
+    {
+      "name": "background-processor",
+      "image": "476114140918.dkr.ecr.ap-south-1.amazonaws.com/background-processor",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "name": "background-processor-80-tcp",
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "8080"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "SHOPIFY_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SHOPIFY_API_KEY::"
+        },
+        {
+          "name": "SHOPIFY_API_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SHOPIFY_API_SECRET::"
+        },
+        {
+          "name": "SHOPIFY_API_SCOPES",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SHOPIFY_API_SCOPES::"
+        },
+        {
+          "name": "SHOPIFY_APP_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SHOPIFY_APP_URL::"
+        },
+        {
+          "name": "SHOPIFY_API_VERSION",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SHOPIFY_API_VERSION::"
+        },
+        {
+          "name": "MONGO_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MONGO_URL::"
+        },
+        {
+          "name": "ENCRYPTION_STRING",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:ENCRYPTION_STRING::"
+        },
+        {
+          "name": "NPM_CONFIG_FORCE",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:NPM_CONFIG_FORCE::"
+        },
+        {
+          "name": "VITE_SHOPIFY_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:VITE_SHOPIFY_API_KEY::"
+        },
+        {
+          "name": "APP_NAME",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:APP_NAME::"
+        },
+        {
+          "name": "APP_HANDLE",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:APP_HANDLE::"
+        },
+        {
+          "name": "APP_PROXY_PREFIX",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:APP_PROXY_PREFIX::"
+        },
+        {
+          "name": "APP_PROXY_SUBPATH",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:APP_PROXY_SUBPATH::"
+        },
+        {
+          "name": "POS_EMBEDDED",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:POS_EMBEDDED::"
+        },
+        {
+          "name": "SQS_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SQS_URL::"
+        },
+        {
+          "name": "AWS_REGION",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_REGION::"
+        },
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_ACCESS_KEY_ID::"
+        },
+        {
+          "name": "AWS_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_SECRET_KEY::"
+        },
+        {
+          "name": "TABLE_ID",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:TABLE_ID::"
+        },
+        {
+          "name": "DATASET_ID",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:DATASET_ID::"
+        },
+        {
+          "name": "CREDS",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CREDS::"
+        },
+        {
+          "name": "MOE_WORKSPACE_ID",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MOE_WORKSPACE_ID::"
+        },
+        {
+          "name": "MOE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MOE_API_KEY::"
+        },
+        {
+          "name": "MOE_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MOE_URL::"
+        }
+      ],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/background-processor-task",
+          "awslogs-create-group": "true",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "systemControls": []
+    }
+  ],
+  "taskRoleArn": "arn:aws:iam::476114140918:role/ecsTaskRole",
+  "executionRoleArn": "arn:aws:iam::476114140918:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "3072",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "enableFaultInjection": false
+}
