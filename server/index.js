@@ -30,6 +30,7 @@ setupCheck(); // Run a check to ensure everything is setup properly
 
 const PORT = parseInt(process.env.PORT, 10) || 8081;
 const isDev = process.env.NODE_ENV === "dev";
+console.log(process.env)
 
 // MongoDB Connection
 const mongoUrl =
