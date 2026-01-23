@@ -79,10 +79,6 @@
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:APP_PROXY_SUBPATH::"
         },
         {
-          "name": "POS_EMBEDDED",
-          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:POS_EMBEDDED::"
-        },
-        {
           "name": "SQS_URL",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SQS_URL::"
         },
