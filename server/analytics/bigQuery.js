@@ -8,7 +8,7 @@ import { getProductVariantDataFromShopify } from "./helpers/shopify.js";
  */
 const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
   try {
-    console.log('Creating analytics entry 👉');
+    console.log("Creating analytics entry 👉");
     let lineItemDetails = [];
     for (let i = 0; i < payload.line_items.length; i++) {
       let variant = payload.line_items[i];

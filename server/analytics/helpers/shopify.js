@@ -1,4 +1,4 @@
-import clientProvider from "../../../utils/clientProvider.js"
+import clientProvider from "../../../utils/clientProvider.js";
 
 /**
  * @param {string} shop - shopify store handle Ex : swiss-local-dev.myshopify.com
