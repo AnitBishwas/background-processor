@@ -1,8 +1,10 @@
+import clientProvider from "../../../../utils/clientProvider.js";
+
 
 /**
  * Create moengage order delivered event
  * @param {string} shop - shopify store handle
- * @param {object} payload - order payload 
+ * @param {object} payload - order payload
  */
 const createMoengageOrderDeliveredEvent = async (shop, payload) => {
   try {
@@ -32,7 +34,6 @@ const createMoengageOrderDeliveredEvent = async (shop, payload) => {
     );
   }
 };
-
 
 /**
  * Generate base64 encoded auth key
@@ -159,7 +160,4 @@ const createMoengageEvent = async ({ eventName, customerPhone, params }) => {
   }
 };
 
-
-export {
-    createMoengageOrderDeliveredEvent
-}
+export { createMoengageOrderDeliveredEvent };
