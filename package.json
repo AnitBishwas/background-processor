@@ -4,7 +4,7 @@
   "description": "Swiss beauty background processor",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=dev nodemon server/index.js --ignore client/ --ignore dist/ ",
+    "dev": "NODE_ENV=dev dotenvx run --env-file=.env.dev nodemon server/index.js --ignore client/ --ignore dist/ ",
     "build": "vite build --config=./client/vite.config.js",
     "start": "NODE_ENV=prod node server/index.js",
     "-----> utils <-----": "",
@@ -17,7 +17,8 @@
     "-----> Shopify <-----": "",
     "g:install": "npm i -g @shopify/cli@latest",
     "shopify": "shopify",
-    "update:config": "node _developer/tomlWriter.js; npm run pretty; shopify app deploy;",
+    "update:config": "node _developer/confirm.js && node _developer/tomlWriter.js && npm run pretty && shopify app deploy;",
+    "update:config:dev": "dotenvx run --env-file=.env.dev node _developer/tomlWriter.js && npm run pretty; shopify app deploy;",
     "update:url": "node _developer/updateDashboard.js",
     "-----> Reserved Scripts <-----": "",
     "preserve": "npm run build"
@@ -25,6 +26,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.966.0",
     "@aws-sdk/client-sqs": "^3.965.0",
+    "@dotenvx/dotenvx": "^1.52.0",
     "@google-cloud/bigquery": "^8.1.1",
     "@shopify/app-bridge-react": "^4.2.8",
     "@shopify/polaris": "^13.9.5",
