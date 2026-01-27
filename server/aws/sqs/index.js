@@ -1,6 +1,9 @@
 import AWS from "aws-sdk";
 import { sendMessageFailureToDynamoDb } from "../dynamoDb/index.js";
-import { createCustomPurchaseEventInBiqQuery } from "../../analytics/bigQuery.js";
+import {
+  createCustomPurchaseEventInBiqQuery,
+  createOrderCancelledEventInBigQuery,
+} from "../../analytics/bigQuery.js";
 import { createMoengageOrderDeliveredEvent } from "../../modules/moe/controllers/index.js";
 
 /**
@@ -26,6 +29,7 @@ const handleMessages = async (message) => {
     }
     if (topic == "ORDER_CREATE") {
       await createCustomPurchaseEventInBiqQuery(payload.shop, payload);
+      await createOrderCancelledEventInBigQuery(payload.shop, payload);
       console.log("processed order creation message ✅");
     } else if (topic == "CASHBACK_PENDING_ASSIGNED") {
       console.log("processed cashback pending assign message ✅");
