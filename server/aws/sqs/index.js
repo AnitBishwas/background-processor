@@ -1,6 +1,7 @@
 import AWS from "aws-sdk";
 import { sendMessageFailureToDynamoDb } from "../dynamoDb/index.js";
 import { createCustomPurchaseEventInBiqQuery } from "../../analytics/bigQuery.js";
+import { createMoengageOrderDeliveredEvent } from "../../modules/moe/controllers/index.js";
 
 /**
  * List of topics
@@ -36,6 +37,7 @@ const handleMessages = async (message) => {
       console.log("processed cashback cancel message ✅");
     } else if (topic == "ORDER_DELIVERED") {
       console.log("processed order delivered message ✅");
+      await createMoengageOrderDeliveredEvent(payload.shop, payload);
     } else if (topic == "CASHBACK_ASSIGN") {
       console.log("processed cashback assign message ✅");
     }
