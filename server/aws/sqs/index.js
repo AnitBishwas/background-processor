@@ -29,13 +29,13 @@ const handleMessages = async (message) => {
     }
     if (topic == "ORDER_CREATE") {
       await createCustomPurchaseEventInBiqQuery(payload.shop, payload);
-      await createOrderCancelledEventInBigQuery(payload.shop, payload);
       console.log("processed order creation message ✅");
     } else if (topic == "CASHBACK_PENDING_ASSIGNED") {
       console.log("processed cashback pending assign message ✅");
     } else if (topic == "CASHBACK_UTILISED") {
       console.log("processed cashback utilised message ✅");
     } else if (topic == "ORDER_CANCEL") {
+      await createOrderCancelledEventInBigQuery(payload.shop, payload);
       console.log("processed order cancel message");
     } else if (topic == "CASHBACK_CANCEL") {
       console.log("processed cashback cancel message ✅");
