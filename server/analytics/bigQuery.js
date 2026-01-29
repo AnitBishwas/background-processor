@@ -41,7 +41,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
       couponValue: payload.discount_codes[0]?.amount
         ? Number(payload.discount_codes[0]?.amount)
         : 0,
-      totalPrice: payload.total_price ? Number(payload.total_price) : 0,
+      totalPrice: payload.total_line_items_price ? Number(payload.total_line_items_price) : 0,
       shippingPrice: payload?.total_shipping_price_set?.shop_money?.amount
         ? Number(payload?.total_shipping_price_set?.shop_money?.amount)
         : 0,
