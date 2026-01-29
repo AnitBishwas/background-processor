@@ -135,19 +135,57 @@ const createOrderCancelledEventInBigQuery = async (shop, payload) => {
         shop,
         variantId
       );
-      let structurredVariantData = {
-        id: variantId,
-        quantity: variant.quantity,
-        ean: variantAdditionalData.barcode,
-        mrp: variantAdditionalData.compareAtPrice
-          ? Number(variantAdditionalData.compareAtPrice)
+      let structuredData = {
+        orderId: payload.name,
+        shopifyOrderId: payload.id,
+        createdAt: payload.created_at,
+        couponCode: payload.discount_codes[0]?.code || "",
+        couponValue: payload.discount_codes[0]?.amount
+          ? Number(payload.discount_codes[0]?.amount)
           : 0,
-        price: Number(variantAdditionalData.price),
-        sku: variantAdditionalData.sku,
-        title: variantAdditionalData.product.title,
-        variant: variant.variant_title,
-        productId: variant.product_id,
-        currentInventory: variantAdditionalData.inventoryQuantity,
+        totalPrice: payload?.total_price ? Number(payload.total_price) : 0,
+        shippingPrice: payload?.total_shipping_price_set?.shop_money?.amount
+          ? Number(payload?.total_shipping_price_set?.shop_money?.amount)
+          : 0,
+        subTotalPrice: payload.total_line_items_price
+          ? Number(payload.total_line_items_price)
+          : 0,
+        partiallyPaidAmount:
+          Number(payload.total_outstanding) < Number(payload.total_price)
+            ? Number(payload.total_price) - Number(payload.total_outstanding)
+            : 0,
+        isSwissCashUtilised: payload.tags
+          .toLowerCase()
+          .split(",")
+          .map((el) => el.trim())
+          .find((el) => el == "swiss cash")
+          ? true
+          : false,
+        utmSource:
+          payload.note_attributes.find((el) => el.name == "utm_source")
+            ?.value || "",
+        utmMedium:
+          payload.note_attributes.find((el) => el.name == "utm_medium")
+            ?.value || "",
+        utmCampaign:
+          payload.note_attributes.find((el) => el.name == "utm_campaign")
+            ?.value || "",
+        landingPage:
+          payload.note_attributes.find((el) => el.name == "full_url")?.value ||
+          "",
+        cod: payload.tags
+          .toLowerCase()
+          .split(",")
+          .map((el) => el.trim())
+          .find((el) => el == "cod")
+          ? true
+          : false,
+        customerName: payload.customer
+          ? payload.customer.first_name + " " + payload.customer.last_name
+          : null,
+        customerPhone: payload.customer ? payload.customer.phone : null,
+        customerEmail: payload.customer ? payload.customer.email : null,
+        lineItems: lineItemDetails,
       };
       lineItemDetails.push(structurredVariantData);
     }
