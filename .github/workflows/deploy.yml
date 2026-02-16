@@ -9,6 +9,9 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
   ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
   ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
+  SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+  SHOPIFY_APP_URL: ${{ secrets.SHOPIFY_APP_URL}}
+  VITE_SHOPIFY_API_KEY: ${{ secrets.VITE_SHOPIFY_API_KEY }}
 
 jobs:
   deploy:
@@ -38,7 +41,12 @@ jobs:
           aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
           echo "Building Docker image..."
-          docker build --build-arg NPM_TOKEN=${{ secrets.NPM_TOKEN }} -t $IMAGE_URI:latest .
+          docker build \
+            --build-arg NPM_TOKEN=${{ secrets.NPM_TOKEN }} \
+            --build-arg SHOPIFY_API_KEY=${{ secrets.SHOPIFY_API_KEY }} \
+            --build-arg SHOPIFY_APP_URL=${{ secrets.SHOPIFY_APP_URL }} \
+            --build-arg VITE_SHOPIFY_API_KEY=${{ secrets.VITE_SHOPIFY_API_KEY }} \
+            -t $IMAGE_URI:latest .
 
           echo "Pushing Docker image..."
           docker push $IMAGE_URI:latest
