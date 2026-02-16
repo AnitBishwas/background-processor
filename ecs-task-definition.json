@@ -137,6 +137,10 @@
         {
           "name": "DELHIVERY_API",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:DELHIVERY_API::"
+        },
+        {
+          "name":"CASHBACK_PROD_DB",
+          "valueFrom":"arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CASHBACK_PROD_DB::"
         }
       ],
       "environmentFiles": [],
