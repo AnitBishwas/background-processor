@@ -1,5 +1,6 @@
 import { Router } from "express";
 import clientProvider from "../../utils/clientProvider.js";
+import adminRoutes from "./admin_routes/index.js";
 
 const userRoutes = Router();
 
@@ -211,4 +212,5 @@ userRoutes.get("/debug/createNewSubscription", async (req, res) => {
   }
 });
 
+userRoutes.use("/admin", adminRoutes);
 export default userRoutes;

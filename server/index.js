@@ -25,6 +25,9 @@ import checkoutRoutes from "./routes/checkout/index.js";
 import userRoutes from "./routes/index.js";
 import webhookHandler from "./webhooks/_index.js";
 import { pollSQSQueue } from "./aws/sqs/index.js";
+import cashbackModels from "../utils/cashbackModelProvider.js";
+import publicRoutes from "./routes/public_routes/index.js";
+import "./jobs/index.js";
 
 setupCheck(); // Run a check to ensure everything is setup properly
 
@@ -36,6 +39,7 @@ const mongoUrl =
   process.env.MONGO_URL || "mongodb://127.0.0.1:27017/shopify-express-app";
 
 mongoose.connect(mongoUrl);
+cashbackModels();
 
 const createServer = async (root = process.cwd()) => {
   const app = Express();
@@ -74,6 +78,7 @@ const createServer = async (root = process.cwd()) => {
   app.use(csp);
   app.use(isInitialLoad);
   //Routes to make server calls
+  app.use("/api/public", publicRoutes);
   app.use("/api/apps", verifyRequest, userRoutes); //Verify user route requests
   app.use("/api/proxy_route", verifyProxy, proxyRouter); //MARK:- App Proxy routes
   app.use(

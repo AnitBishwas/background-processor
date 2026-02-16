@@ -117,6 +117,26 @@
         {
           "name": "MOE_URL",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MOE_URL::"
+        },
+        {
+          "name": "LIME_CHAT_API",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:LIME_CHAT_API::"
+        },
+        {
+          "name": "LIME_ACCOUNT_ID",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:LIME_ACCOUNT_ID::"
+        },
+        {
+          "name": "SHIPROCKET_EMAIL",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SHIPROCKET_EMAIL::"
+        },
+        {
+          "name": "SHIPROCKET_PASS",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:SHIPROCKET_PASS::"
+        },
+        {
+          "name": "DELHIVERY_API",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:DELHIVERY_API::"
         }
       ],
       "environmentFiles": [],

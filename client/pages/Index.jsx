@@ -2,18 +2,24 @@ import {
   BlockStack,
   Button,
   Card,
+  InlineGrid,
   InlineStack,
   Layout,
+  Link,
   Page,
   Text,
 } from "@shopify/polaris";
-import { ExternalIcon } from "@shopify/polaris-icons";
-import { navigate } from "raviger";
 
 const HomePage = () => {
   return (
     <>
-      <Page title="Background processor"></Page>
+      <Page title="Background processor">
+        <InlineGrid columns={2}>
+          <Card>
+            <Link href="/secrets">Manage Api keys</Link>
+          </Card>
+        </InlineGrid>
+      </Page>
     </>
   );
 };
