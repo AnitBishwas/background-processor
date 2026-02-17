@@ -171,5 +171,12 @@
   "runtimePlatform": {
     "cpuArchitecture": "X86_64",
     "operatingSystemFamily": "LINUX"
-  }
+  },
+  "healthCheck": {
+  "command": ["CMD-SHELL", "node healthcheck.js || exit 1"],
+  "interval": 30,
+  "timeout": 5,
+  "retries": 3,
+  "startPeriod": 30
+}
 }
