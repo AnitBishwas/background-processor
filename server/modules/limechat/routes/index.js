@@ -9,7 +9,10 @@ const limeChaRoutes = Router();
 limeChaRoutes.get("/status", async (req, res) => {
   try {
     const { orderId } = req.query;
-    const shop = res.locals.user_session.shop;
+    const shop =
+      process.env.NODE_ENV == "dev"
+        ? "swiss-local-dev.myshopify.com"
+        : "swiss-beauty-dev.myshopify.com";
     if (!orderId) {
       throw new Error("Required parameters missing");
     }
@@ -22,7 +25,7 @@ limeChaRoutes.get("/status", async (req, res) => {
       message: orderStatus,
     });
   } catch (err) {
-    console.log("Failed to get limechat status route reason -->" + err.message)
+    console.log("Failed to get limechat status route reason -->" + err.message);
     res.status(400).json({
       ok: false,
     });
