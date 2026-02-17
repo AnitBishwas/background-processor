@@ -16,6 +16,8 @@ publicRoutes.get("/health", (req, res) => {
     });
   }
 });
+
+
 publicRoutes.use(publicApiKeyAuth);
 
 publicRoutes.use("/cashback", cashbackPublicRoutes);
