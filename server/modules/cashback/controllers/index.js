@@ -293,7 +293,7 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
       const correspondingTransaction = await newTransaction.save({ session });
 
       // server event for cashback pending assigned
-      createCashbackPendingAssignedEvent(correspondingPoint._id, payload);
+      createCashbackPendingAssignedEvent(correspondingPoint._id.toString(), payload);
     }
     await session.commitTransaction();
   } catch (err) {
