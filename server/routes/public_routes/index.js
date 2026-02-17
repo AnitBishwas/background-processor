@@ -19,6 +19,6 @@ publicRoutes.get("/health", (req, res) => {
 publicRoutes.use(publicApiKeyAuth);
 
 publicRoutes.use("/cashback", cashbackPublicRoutes);
-app.use("/limechat", limeChaRoutes);
+publicRoutes.use("/limechat", limeChaRoutes);
 
 export default publicRoutes;
