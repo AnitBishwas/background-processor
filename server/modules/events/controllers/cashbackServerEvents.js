@@ -16,10 +16,10 @@ const createCashbackPendingAssignedEvent = async (pointId, orderDetails) => {
       console.log("No point id provided");
     }
     const correspondingPoint =
-      await cashbackModel.Point.findById(pointId).lean();
+      await cashbackModel.Point.findById(pointId).lean().session(session);
     console
       .log(correspondingPoint, pointId, "here we log are loggin point")
-      .session(session);
+      ;
     if (!correspondingPoint) {
       console.log("No point found with the following id " + pointId);
     }

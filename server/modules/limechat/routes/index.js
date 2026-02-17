@@ -22,6 +22,7 @@ limeChaRoutes.get("/status", async (req, res) => {
       message: orderStatus,
     });
   } catch (err) {
+    console.log("Failed to get limechat status route reason -->" + err.message)
     res.status(400).json({
       ok: false,
     });
