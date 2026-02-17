@@ -1,5 +1,5 @@
 import { Router } from "express";
-// import limeChaRoutes from "../../modules/limechat/routes/index.js";
+import limeChaRoutes from "../../modules/limechat/routes/index.js";
 import publicApiKeyAuth from "../../middleware/verifyPublicRoutes.js";
 import cashbackPublicRoutes from "../../modules/cashback/routes/public/index.js";
 
@@ -19,6 +19,6 @@ publicRoutes.get("/health", (req, res) => {
 publicRoutes.use(publicApiKeyAuth);
 
 publicRoutes.use("/cashback", cashbackPublicRoutes);
-// app.use("/limechat", limeChatRoutes);
+app.use("/limechat", limeChaRoutes);
 
 export default publicRoutes;

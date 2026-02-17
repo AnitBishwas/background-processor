@@ -31,11 +31,12 @@ const mapOrderStatus = (order) => {
     }
     const attempted_delivery =
       order.fulfillments.length > 0 && order.tracking.attempted_delivery.ok;
-    const attempted_delivery_count = order?.tracking?.attempted_delivery?.attempt_count;
+    const attempted_delivery_count =
+      order?.tracking?.attempted_delivery?.attempt_count;
     if (attempted_delivery && attempted_delivery_count < 3) {
       return `Delivery was attempted on ${new Date(order.tracking.attempted_delivery.date).toDateString()} but was unsuccessful. Delivery will now be reattempted on the next working day`;
-    }else if(attempted_delivery && attempted_delivery_count >= 3){
-      return `Delivery was attempted on ${new Date(order.tracking.attempted_delivery.date).toDateString()} but was unsuccessful. Your order will now be marked as RTO. Once updated, the refund will be initiated and credited within 5–7 working days.`
+    } else if (attempted_delivery && attempted_delivery_count >= 3) {
+      return `Delivery was attempted on ${new Date(order.tracking.attempted_delivery.date).toDateString()} but was unsuccessful. Your order will now be marked as RTO. Once updated, the refund will be initiated and credited within 5–7 working days.`;
     }
     const isShipped =
       order.fulfillments.length > 0 && order.tracking.edd
@@ -52,6 +53,4 @@ const mapOrderStatus = (order) => {
     throw new Error("Failed to map order status reason -->" + err.message);
   }
 };
-export {
-    mapOrderStatus
-}
+export { mapOrderStatus };

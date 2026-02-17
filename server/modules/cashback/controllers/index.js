@@ -6,7 +6,10 @@ import {
   createCashbackUtilisedEvent,
 } from "../../events/controllers/cashbackServerEvents.js";
 import { normalizeIndianPhone } from "../helpers/index.js";
-import { cashbackCreditedEventInMoe, handleCashbackUpdateForMoe } from "../../moe/controllers/cashback.js";
+import {
+  cashbackCreditedEventInMoe,
+  handleCashbackUpdateForMoe,
+} from "../../moe/controllers/cashback.js";
 
 const getListOfCustomersWherePhoneIsBlank = async () => {
   try {
@@ -434,7 +437,7 @@ const markPendingCashbackToReady = async (payload) => {
       payload.order_id,
       payload.shop
     );
-    cashbackCreditedEventInMoe(pointUpdate._id,payload.shop)
+    cashbackCreditedEventInMoe(pointUpdate._id, payload.shop);
     handleCashbackUpdateForMoe(pointUpdate._id, payload.shop);
     await session.commitTransaction();
     console.log("Cashback assigned to user ✅");

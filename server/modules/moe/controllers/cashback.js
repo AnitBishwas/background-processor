@@ -100,9 +100,9 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
       pointsExpiry: point.expiresOn,
     };
     await createMoengageEvent({
-      eventName: 'cashback_assigned_v2',
+      eventName: "cashback_assigned_v2",
       customerPhone: customerPhone,
-      ...moePayload
+      ...moePayload,
     });
   } catch (err) {
     console.log(
@@ -110,4 +110,4 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
     );
   }
 };
-export { handleCashbackUpdateForMoe,cashbackCreditedEventInMoe };
+export { handleCashbackUpdateForMoe, cashbackCreditedEventInMoe };
