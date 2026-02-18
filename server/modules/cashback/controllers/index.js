@@ -358,6 +358,7 @@ const customerDetailsViaOrderId = async (shop, orderId) => {
 
 const markPendingCashbackToReady = async (payload) => {
   const cashbackModel = await cashbackModels();
+  console.log('marking cashback pending assign to ready 👀')
   const session = await cashbackModel.conn.startSession();
   try {
     session.startTransaction();
@@ -365,6 +366,7 @@ const markPendingCashbackToReady = async (payload) => {
     if (!payload?.order_id) {
       throw new Error("Order id not provided");
     }
+
     const customer = await customerDetailsViaOrderId(
       payload.shop,
       payload.order_id
@@ -442,6 +444,7 @@ const markPendingCashbackToReady = async (payload) => {
     await session.commitTransaction();
     console.log("Cashback assigned to user ✅");
   } catch (err) {
+    console.log("Failed to mark pending cashback to ready reason -->" + err.message)
     await session.abortTransaction();
     throw new Error(
       "Failed to mark pending cashback to ready reason -->" + err.message
