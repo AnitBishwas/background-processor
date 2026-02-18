@@ -151,6 +151,7 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
       throw new Error("Payload can't be balnk");
     }
     const customer = payload.customer;
+    let allocatedPoint = null;
     const customerId = customer.id;
     let cashbackConfig = await cashbackModel.Settings.findOne({})
       .lean()
@@ -291,14 +292,16 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
         note: `Cashback credit on order ${payload.order_number}`,
       });
       const correspondingTransaction = await newTransaction.save({ session });
-
+      allocatedPoint = correspondingPoint;
+    }
+    await session.commitTransaction();
+    if (allocatedPoint) {
       // server event for cashback pending assigned
       createCashbackPendingAssignedEvent(
-        correspondingPoint._id.toString(),
+        allocatedPoint._id.toString(),
         payload
       );
     }
-    await session.commitTransaction();
   } catch (err) {
     await session.abortTransaction();
     throw new Error(
@@ -438,6 +441,7 @@ const markPendingCashbackToReady = async (payload) => {
       },
       { session: session }
     ).lean();
+    await session.commitTransaction();
     createCashbackAssignedEvent(
       pointUpdate._id,
       payload.order_id,
@@ -445,7 +449,6 @@ const markPendingCashbackToReady = async (payload) => {
     );
     cashbackCreditedEventInMoe(pointUpdate._id, payload.shop);
     handleCashbackUpdateForMoe(pointUpdate._id, payload.shop);
-    await session.commitTransaction();
     console.log("Cashback assigned to user ✅");
   } catch (err) {
     console.log(
