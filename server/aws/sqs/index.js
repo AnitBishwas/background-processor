@@ -57,6 +57,7 @@ const handleMessages = async (message, meta = {}) => {
       console.log("processed order delivered message ✅");
       await createMoengageOrderDeliveredEvent(payload.shop, payload);
     } else if (topic == "CASHBACK_ASSIGN") {
+      console.log("Recieved cashback assign event in here 👀")
       await markPendingCashbackToReady(payload);
       console.log("processed cashback assign message ✅");
     } else if (topic == "ORDER_REFUND") {
