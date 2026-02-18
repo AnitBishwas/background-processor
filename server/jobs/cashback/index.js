@@ -5,7 +5,7 @@ import { handleCashbackExpiry } from "../../modules/cashback/controllers/jobs.js
 const customerBlankPhoneSortingJob = new CronJob(
   "0 0 3 * * *", // ⏰ 03:00:00 AM every day
   function () {
-    console.llog("phone blank job started at 03:00:00 AM");
+    console.log("phone blank job started at 03:00:00 AM");
     updateCustomerWithEmptyPhoneField();
   },
   null,
