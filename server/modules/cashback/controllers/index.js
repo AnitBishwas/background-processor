@@ -293,7 +293,10 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
       const correspondingTransaction = await newTransaction.save({ session });
 
       // server event for cashback pending assigned
-      createCashbackPendingAssignedEvent(correspondingPoint._id.toString(), payload);
+      createCashbackPendingAssignedEvent(
+        correspondingPoint._id.toString(),
+        payload
+      );
     }
     await session.commitTransaction();
   } catch (err) {
@@ -358,7 +361,7 @@ const customerDetailsViaOrderId = async (shop, orderId) => {
 
 const markPendingCashbackToReady = async (payload) => {
   const cashbackModel = await cashbackModels();
-  console.log('marking cashback pending assign to ready 👀')
+  console.log("marking cashback pending assign to ready 👀");
   const session = await cashbackModel.conn.startSession();
   try {
     session.startTransaction();
@@ -401,6 +404,7 @@ const markPendingCashbackToReady = async (payload) => {
         new: true,
       }
     ).lean();
+    console.log(pointUpdate, "here this is the point update");
     if (!pointUpdate) {
       await session.commitTransaction();
       return;
@@ -444,7 +448,9 @@ const markPendingCashbackToReady = async (payload) => {
     await session.commitTransaction();
     console.log("Cashback assigned to user ✅");
   } catch (err) {
-    console.log("Failed to mark pending cashback to ready reason -->" + err.message)
+    console.log(
+      "Failed to mark pending cashback to ready reason -->" + err.message
+    );
     await session.abortTransaction();
     throw new Error(
       "Failed to mark pending cashback to ready reason -->" + err.message
