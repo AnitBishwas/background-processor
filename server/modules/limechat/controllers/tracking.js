@@ -21,6 +21,12 @@ const getOrderTrackingInfo = async (order) => {
     if (isCompanyDelhivery) {
       tracking = await getTrackingStatusFromDelhivery(trackingNumber, orderId);
     }
+    console.dir(
+      { tracking, message: "here is the tracking info for you" },
+      {
+        depth: null,
+      }
+    );
     return tracking;
   } catch (err) {
     throw new Error("Failed to get order tracking info reason --> " + err);
@@ -88,6 +94,9 @@ const getTrackingStatusFromShipRocket = async (orderId) => {
     };
     return formattedData;
   } catch (err) {
+    console.log(
+      "Failed to get shipping status from shiprocket reason -->" + err.message
+    );
     throw new Error(
       "Failed to get tracking status from shiprocket reason --> " + err.message
     );
@@ -130,6 +139,7 @@ const getTrackingStatusFromDelhivery = async (awb, orderId) => {
     };
     return formattedData;
   } catch (err) {
+    console.log("Failed to get shipping status from dehilvery");
     throw new Error(
       "Failed to get tracking info from delhivery reason -->" + err.message
     );
