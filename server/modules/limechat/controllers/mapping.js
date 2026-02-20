@@ -8,7 +8,6 @@ const mapOrderStatus = async (order) => {
   try {
     const isOrderCancelled = order.cancelledAt;
     const fulfillments = order.fulfillments;
-
     // if order is RTO
     const isRto = fulfillments[0]?.displayStatus == "FAILURE" || false;
     if (isRto) {
