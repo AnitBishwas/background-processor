@@ -24,7 +24,11 @@ const getCashbackConn = async () => {
   cachedConn = await mongoose
     .createConnection(cashbackDbURI, { maxPoolSize: 20 })
     .asPromise();
-  console.log("DB: here is our db's connection log 🕔", cachedConn.name, cachedConn.host);
+  console.log(
+    "DB: here is our db's connection log 🕔",
+    cachedConn.name,
+    cachedConn.host
+  );
   return cachedConn;
 };
 
