@@ -177,13 +177,15 @@ const getOrderByOrderName = async (shop, orderName) => {
   }
 };
 
-const getOrderDetailsFromShopifyByOrderName = async(shop,orderName) =>{
-  try{
-    if(!shop || !orderName){
+const getOrderDetailsFromShopifyByOrderName = async (shop, orderName) => {
+  try {
+    if (!shop || !orderName) {
       throw new Error("Required parameters missing");
-    };
-    const {client} = await clientProvider.offline.graphqlClient({shop});
-    let normalisedOrderName = (orderName + "").includes("#") ? orderName : `#${orderName}`;
+    }
+    const { client } = await clientProvider.offline.graphqlClient({ shop });
+    let normalisedOrderName = (orderName + "").includes("#")
+      ? orderName
+      : `#${orderName}`;
     const query = `query{
       orders(first: 1, query:"name:${normalisedOrderName}"){
         edges{
@@ -201,34 +203,41 @@ const getOrderDetailsFromShopifyByOrderName = async(shop,orderName) =>{
         }
       }
     }`;
-    const {data,errors,extensions} = await client.request(query);
-    if(errors && errors.length > 0){
+    const { data, errors, extensions } = await client.request(query);
+    if (errors && errors.length > 0) {
       throw new Error("Failed to get order details reason");
-    };
-    if(data.orders.edges.length == 0){
+    }
+    if (data.orders.edges.length == 0) {
       throw new Error("No order found for against order name");
-    };
+    }
     return data.orders.edges[0].node;
-  }catch(err){
-    throw new Error("Failed to get order details from shopify by order name reason -->" + err.message);
+  } catch (err) {
+    throw new Error(
+      "Failed to get order details from shopify by order name reason -->" +
+        err.message
+    );
   }
-}
+};
 /**
  *
  * @param {string} shop - shopify store handle
  * @param {string} orderId - shopify order iod
  * @returns
  */
-const getOrderStatusByOrderId = async(shop,orderId) =>{
-  try{
-    const orderDetails = await getOrderDetailsFromShopifyByOrderName(shop,orderId);
+const getOrderStatusByOrderId = async (shop, orderId) => {
+  try {
+    const orderDetails = await getOrderDetailsFromShopifyByOrderName(
+      shop,
+      orderId
+    );
     const orderStatus = await mapOrderStatus(orderDetails);
-    return orderStatus
-    
-  }catch(err){
-    console.log("Failed to get order status by order id reason -->" + err.message);
+    return orderStatus;
+  } catch (err) {
+    console.log(
+      "Failed to get order status by order id reason -->" + err.message
+    );
   }
-}
+};
 export {
   getCustomersLastFiveOrders,
   getOrderByOrderName,
