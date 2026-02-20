@@ -83,7 +83,7 @@ const getLastFiveOrdersByCustomerId = async (shop, customerId) => {
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const query = `query{
             customer(id: "${normalisedCustomerId}"){
-                orders(first: 5){
+                orders(first: 5, sortKey: PROCESSED_AT, reverse: true){
                     edges{
                         node{
                             id
