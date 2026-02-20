@@ -4,6 +4,7 @@
  * @returns {string} status text
  */
 const mapOrderStatus = async (order) => {
+  console.dir({order,message: 'here it is 👉'},{depth: null})
   try {
     const isOrderCancelled = order.cancelledAt;
     const fulfillments = order.fulfillments;
