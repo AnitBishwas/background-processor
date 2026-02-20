@@ -218,6 +218,7 @@ const getOrderDetailsFromShopifyByOrderName = async (shop, orderName) => {
     );
   }
 };
+
 /**
  *
  * @param {string} shop - shopify store handle
