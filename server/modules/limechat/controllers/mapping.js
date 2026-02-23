@@ -4,12 +4,12 @@
  * @returns {string} status text
  */
 const mapOrderStatus = async (order) => {
-  console.dir({order,message: 'here it is 👉'},{depth: null})
+  console.dir({ order, message: "here it is 👉" }, { depth: null });
   try {
     const isOrderCancelled = order.cancelledAt;
     const fulfillments = order.fulfillments;
     // if order is RTO
-    const isRto = fulfillments[0]?.displayStatus == "FAILURE" || false;
+    const isRto = fulfillments[0]?.displayStatus == "FAILURE" || fulfillments[0]?.displayStatus == "NOT_DELIVERED" || false;
     if (isRto) {
       return `Your order was marked as returned on ${new Date(
         fulfillments[0]?.updatedAt
@@ -35,21 +35,24 @@ const mapOrderStatus = async (order) => {
       ).toDateString()}`;
     }
     // if order delivery attempt was made
-    const attempted_delivery = fulfillments[0]?.displayStatus == 'ATTEMPTED_DELIVERY' ? true : false;
-    if (attempted_delivery ) {
+    const attempted_delivery =
+      fulfillments[0]?.displayStatus == "ATTEMPTED_DELIVERY" ? true : false;
+    if (attempted_delivery) {
       return `Delivery was attempted on ${new Date(fulfillments[0]?.updatedAt).toDateString()} but was unsuccessful. Delivery will now be reattempted on the next working day`;
-    };
+    }
     // if order is in transit
-    const inTransit = fulfillments[0]?.displayStatus == 'IN_TRANSIT' ? true : false;
-    if(inTransit){
+    const inTransit =
+      fulfillments[0]?.displayStatus == "IN_TRANSIT" ? true : false;
+    if (inTransit) {
       return `Your order is shipped. Kindly check your whatsapp or email for the tracking link.`;
-    };
+    }
     // if tracking details attached to order
-    const trackingAdded = fulfillments[0]?.displayStatus == 'CONFIRMED' ? true : false;
-    if(trackingAdded){
-      return `Your order is packed and ready to move out. Kindly check your whatsapp or email for the tracking link.`
-    };
-    return false; 
+    const trackingAdded =
+      fulfillments[0]?.displayStatus == "CONFIRMED" ? true : false;
+    if (trackingAdded) {
+      return `Your order is packed and ready to move out. Kindly check your whatsapp or email for the tracking link.`;
+    }
+    return false;
   } catch (err) {
     throw new Error("Failed to map order status reason -->" + err.message);
   }
