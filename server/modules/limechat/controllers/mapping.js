@@ -8,9 +8,12 @@ const mapOrderStatus = async (order) => {
   try {
     const isOrderCancelled = order.cancelledAt;
     const fulfillments = order.fulfillments;
-    
+
     // if order is RTO
-    const isRto = fulfillments[0]?.displayStatus == "FAILURE" || fulfillments[0]?.displayStatus == "NOT_DELIVERED" || false;
+    const isRto =
+      fulfillments[0]?.displayStatus == "FAILURE" ||
+      fulfillments[0]?.displayStatus == "NOT_DELIVERED" ||
+      false;
     if (isRto) {
       return `Your order was marked as returned on ${new Date(
         fulfillments[0]?.updatedAt

@@ -39,6 +39,9 @@ limeChaRoutes.get("/orders", async (req, res) => {
       throw new Error("Required parameters missing");
     }
     const ordersList = await getCustomersLastFiveOrders(phone);
+    if(ordersList.length == 0){
+      throw new Error("No order found against customer")
+    }
     res.status(200).json({
       ok: true,
       orders: [...ordersList],
