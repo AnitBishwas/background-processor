@@ -192,12 +192,16 @@ const getOrderDetailsFromShopifyByOrderName = async (shop, orderName) => {
           node{
             id
             name
+            createdAt
             returnStatus
             cancelledAt
             cancelledAt
             fulfillments(first:1){
               displayStatus
               updatedAt
+              trackingInfo(first: 1){
+                url
+              }
             }
           }
         }

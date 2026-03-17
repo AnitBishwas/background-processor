@@ -42,19 +42,20 @@ const mapOrderStatus = async (order) => {
     const attempted_delivery =
       fulfillments[0]?.displayStatus == "ATTEMPTED_DELIVERY" ? true : false;
     if (attempted_delivery) {
-      return `Delivery was attempted on ${new Date(fulfillments[0]?.updatedAt).toDateString()} but was unsuccessful. Delivery will now be reattempted on the next working day`;
+      return `We tried delivering your order on ${new Date(fulfillments[0]?.updatedAt).toDateString()}but unfortunately the delivery could not be completed.No worries-our delivery partner will attempt delivery again on ${new Date(new Date(fulfillments[0]?.updatedAt).getTime() + 1 * 24 * 60 * 60 * 1000).toDateString()}. Please ensure someone is available to receive the order.`;
     }
     // if order is in transit
     const inTransit =
       fulfillments[0]?.displayStatus == "IN_TRANSIT" ? true : false;
     if (inTransit) {
-      return `Your order is shipped. Kindly check your whatsapp or email for the tracking link.`;
+      return `Your order has been shipped and will reach you soon.You can track your order here: ${fulfillments[0]?.trackingInfo[0]?.url}.For real-time updates, please check your WhatsApp or email.`;
     }
     // if tracking details attached to order
     const trackingAdded =
       fulfillments[0]?.displayStatus == "CONFIRMED" ? true : false;
     if (trackingAdded) {
-      return `Your order is packed and ready to move out. Kindly check your whatsapp or email for the tracking link.`;
+      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.
+ Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
     }
     return false;
   } catch (err) {

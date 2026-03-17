@@ -3,7 +3,6 @@ import fetch from "node-fetch";
 const getRtoOrdersListFromEasycom = async () => {
   try {
     const authKey = await generateEasycomAuthKey();
-
   } catch (err) {
     throw new Error(
       "Failed to get RTO orders list from easycom reason -->" + err.message
