@@ -25,11 +25,6 @@ const mapOrderStatus = async (order) => {
         order.cancelledAt
       ).toDateString()}. Prepaid orders are refunded automatically in 5 to 7 working days on source account.`;
     }
-    // if fulfillment not assigned
-    if (fulfillments.length == 0) {
-      return `Your order has been successfully confirmed and is expected to be delivered within 2–5 working days.
-              Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
-    }
     // if order is delivered
     const isDelivered =
       fulfillments[0]?.displayStatus == "DELIVERED" ? true : null;
@@ -48,14 +43,19 @@ const mapOrderStatus = async (order) => {
     const inTransit =
       fulfillments[0]?.displayStatus == "IN_TRANSIT" ? true : false;
     if (inTransit) {
-      return `Your order has been shipped and will reach you soon.You can track your order here: ${fulfillments[0]?.trackingInfo[0]?.url}.For real-time updates, please check your WhatsApp or email.`;
+      return `Your order has been shipped and will reach you soon.\n You can track your order here: ${fulfillments[0]?.trackingInfo[0]?.url} .\nFor real-time updates, please check your WhatsApp or email.`;
     }
     // if tracking details attached to order
     const trackingAdded =
       fulfillments[0]?.displayStatus == "CONFIRMED" ? true : false;
     if (trackingAdded) {
       return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.
- Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
+              Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
+    }
+    // if fulfillment not assigned
+    if (fulfillments.length == 0) {
+      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.
+              Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
     }
     return false;
   } catch (err) {
