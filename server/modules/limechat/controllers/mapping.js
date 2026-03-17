@@ -49,11 +49,11 @@ const mapOrderStatus = async (order) => {
     const trackingAdded =
       fulfillments[0]?.displayStatus == "CONFIRMED" ? true : false;
     if (trackingAdded) {
-      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.\nNote: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
+      return `Your order has been successfully confirmed on ${new Date(order.createdAt).toDateString()} and is expected to be delivered within 2–5 working days.\nNote: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
     }
     // if fulfillment not assigned
     if (fulfillments.length == 0) {
-      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.\nNote: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
+      return `Your order has been successfully confirmed on ${new Date(order.createdAt).toDateString()} and is expected to be delivered within 2–5 working days.\nNote: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
     }
     return false;
   } catch (err) {
