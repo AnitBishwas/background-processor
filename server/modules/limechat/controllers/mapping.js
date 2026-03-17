@@ -37,7 +37,7 @@ const mapOrderStatus = async (order) => {
     const attempted_delivery =
       fulfillments[0]?.displayStatus == "ATTEMPTED_DELIVERY" ? true : false;
     if (attempted_delivery) {
-      return `We tried delivering your order on ${new Date(fulfillments[0]?.updatedAt).toDateString()}but unfortunately the delivery could not be completed.No worries-our delivery partner will attempt delivery again on ${new Date(new Date(fulfillments[0]?.updatedAt).getTime() + 1 * 24 * 60 * 60 * 1000).toDateString()}. Please ensure someone is available to receive the order.`;
+      return `We tried delivering your order on ${new Date(fulfillments[0]?.updatedAt).toDateString()} but unfortunately the delivery could not be completed. No worries-our delivery partner will attempt delivery again on ${new Date(new Date(fulfillments[0]?.updatedAt).getTime() + 1 * 24 * 60 * 60 * 1000).toDateString()}. Please ensure someone is available to receive the order.`;
     }
     // if order is in transit
     const inTransit =
@@ -49,13 +49,11 @@ const mapOrderStatus = async (order) => {
     const trackingAdded =
       fulfillments[0]?.displayStatus == "CONFIRMED" ? true : false;
     if (trackingAdded) {
-      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.
-              Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
+      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.\nNote: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
     }
     // if fulfillment not assigned
     if (fulfillments.length == 0) {
-      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.
-              Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
+      return `Your order has been successfully confirmed on ${order.createdAt.toDateString()} and is expected to be delivered within 2–5 working days.\nNote: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
     }
     return false;
   } catch (err) {
