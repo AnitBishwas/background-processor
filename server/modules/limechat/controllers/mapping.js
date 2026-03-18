@@ -37,7 +37,7 @@ const mapOrderStatus = async (order) => {
     const attempted_delivery =
       fulfillments[0]?.displayStatus == "ATTEMPTED_DELIVERY" ? true : false;
     if (attempted_delivery) {
-      return `We tried delivering your order on ${new Date(fulfillments[0]?.updatedAt).toDateString()} but unfortunately the delivery could not be completed. No worries-our delivery partner will attempt delivery again on ${new Date(new Date(fulfillments[0]?.updatedAt).getTime() + 1 * 24 * 60 * 60 * 1000).toDateString()}. Please ensure someone is available to receive the order.`;
+      return `We tried delivering your order on ${new Date(fulfillments[0]?.updatedAt).toDateString()} but unfortunately the delivery could not be completed. No worries-our delivery partner will attempt delivery again in the next 24-48 hours. Please ensure someone is available to receive the order.`;
     }
     // if order is in transit
     const inTransit =
