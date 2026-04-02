@@ -172,7 +172,10 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
       .session(session);
     if (checkExistingTransaction || !customerId) {
       throw new Error("Multiple cashback allocation for same order detected");
-    }
+    };
+    // computing orders net value that will or is paid by the customer
+    let orderValue = Number(payload.total_price) - Number(payload.note_attributes?.find(el => el.name == 'Internal_Wallet_Amount')?.value || 0);
+    /// ended here
     // if customer wallet not found register customer
     if (!customerWallet) {
       let newCustomer = new cashbackModel.Customer({
@@ -214,7 +217,7 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
         cashbackAssignAmount = cbDiscount.value;
       } else {
         cashbackAssignAmount =
-          (Number(payload.subtotal_price) * cbDiscount.value) / 100;
+          (Number(orderValue) * cbDiscount.value) / 100;
       }
       // in case discount code allows order above application we'll add up the amount
       if (cbDiscount.orderAboveApplication) {
@@ -222,7 +225,7 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
           cashbackAssignAmount += Number(orderAllocationValue);
         } else {
           cashbackAssignAmount +=
-            (Number(payload.subtotal_price) * orderAllocationValue) / 100;
+            (Number(orderValue) * orderAllocationValue) / 100;
         }
       }
       toAssignCashbackAmount = cashbackAssignAmount;
@@ -231,7 +234,7 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
         toAssignCashbackAmount += Number(orderAllocationValue);
       } else {
         toAssignCashbackAmount +=
-          (Number(payload.subtotal_price) * orderAllocationValue) / 100;
+          (Number(orderValue) * orderAllocationValue) / 100;
       }
     }
 
