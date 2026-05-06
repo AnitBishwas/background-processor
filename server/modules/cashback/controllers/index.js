@@ -8,6 +8,7 @@ import {
 import { normalizeIndianPhone } from "../helpers/index.js";
 import {
   cashbackCreditedEventInMoe,
+  handleCashbackRefundEventOnCancellationInMoe,
   handleCashbackUpdateForMoe,
 } from "../../moe/controllers/cashback.js";
 
@@ -172,9 +173,15 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
       .session(session);
     if (checkExistingTransaction || !customerId) {
       throw new Error("Multiple cashback allocation for same order detected");
-    };
+    }
     // computing orders net value that will or is paid by the customer
-    let orderValue = Number(payload.total_price) - Number(payload.note_attributes?.find(el => el.name == 'Internal_Wallet_Amount')?.value || 0);
+    let orderValue =
+      Number(payload.total_price) -
+      Number(
+        payload.note_attributes?.find(
+          (el) => el.name == "Internal_Wallet_Amount"
+        )?.value || 0
+      );
     /// ended here
     // if customer wallet not found register customer
     if (!customerWallet) {
@@ -216,8 +223,7 @@ const assignCashbackPendingAssignedToCustomer = async (payload) => {
       if (discountType == "fixed") {
         cashbackAssignAmount = cbDiscount.value;
       } else {
-        cashbackAssignAmount =
-          (Number(orderValue) * cbDiscount.value) / 100;
+        cashbackAssignAmount = (Number(orderValue) * cbDiscount.value) / 100;
       }
       // in case discount code allows order above application we'll add up the amount
       if (cbDiscount.orderAboveApplication) {
@@ -924,6 +930,12 @@ const handleCashbackCancellation = async (payload) => {
     );
 
     await session.commitTransaction();
+    // handleCashbackRefundEventOnCancellationInMoe
+    handleCashbackRefundEventOnCancellationInMoe(
+      refundable,
+      Number(customerWallet.
+      balance || 0)
+    );
     return {
       ok: true,
       message: "Cancellation cashback handling completed",

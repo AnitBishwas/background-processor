@@ -6,6 +6,40 @@ import {
 } from "../helpers/index.js";
 
 /**
+ * @param {Number} amount - refunded amount
+ * @param {String} customerId - shopify customer id
+ */
+const handleCashbackRefundEventOnCancellationInMoe = async (
+  amount,
+  customerId
+) => {
+  console.log('creating cancellation refund event in moe')
+  const cashbackModel = await cashbackModels();
+  try {
+    const [customer, wallet] = await Promise.all([
+      cashbackModel.Customer.findOne({ customerId: customerId }).lean(),
+      cashbackModel.Wallet.findOne({ customerId: customerId }).lean(),
+    ]);
+
+    const moePayload = {
+      name: customer.firstName + " " + customer.lastName,
+      amount: amount,
+      balance: wallet.balance,
+    };
+    await createMoengageEvent({
+      eventName: "cashback_cancel_refund",
+      customerPhone: customer.phone,
+      ...moePayload,
+    });
+    await updateMoeUserAttribute(customer.phone, moePayload);
+  } catch (err) {
+    console.log(
+      "Failed to handle cashback refund event on cancellation in moe reason -->" +
+        err.message
+    );
+  }
+};
+/**
  * Update customers wallet properties
  * @param {String} pointId - point id
  * @param {String} shop - shopify store handle
@@ -110,4 +144,8 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
     );
   }
 };
-export { handleCashbackUpdateForMoe, cashbackCreditedEventInMoe };
+export {
+  handleCashbackUpdateForMoe,
+  cashbackCreditedEventInMoe,
+  handleCashbackRefundEventOnCancellationInMoe,
+};
