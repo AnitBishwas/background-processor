@@ -1372,7 +1372,6 @@ const getCustomersRedeemableValueBasedOnCart = async (payload) => {
  */
 const handleCashbackManualDistribution = async (payload) =>{
   try{
-
     if(!payload.pointId){
       throw new Error("No point id provided");
     }
