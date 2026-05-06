@@ -71,10 +71,10 @@ const handleMessages = async (message, meta = {}) => {
       console.log("recieved cashback bulk distribution ✅");
       await handleCashbackBulkDistribution(payload, meta);
       console.log("processed cashback bulk distribution ✅");
-    }else if(topic == "CASHBACK_Manual_DISTRIBUTION"){
-       console.log("processing cashback manual distribution ✅")
+    } else if (topic == "CASHBACK_Manual_DISTRIBUTION") {
+      console.log("processing cashback manual distribution ✅");
       await handleCashbackManualDistribution(payload);
-      console.log("processed cashback manual distribution ✅")
+      console.log("processed cashback manual distribution ✅");
     }
   } catch (err) {
     console.log("Failed to handle messages reason -->" + err.message);

@@ -1367,40 +1367,39 @@ const getCustomersRedeemableValueBasedOnCart = async (payload) => {
   }
 };
 /**
- * 
- * @param {pointId : String, shop: String} payload 
+ *
+ * @param {pointId : String, shop: String} payload
  */
-const handleCashbackManualDistribution = async (payload) =>{
-  try{
-    if(!payload.pointId){
+const handleCashbackManualDistribution = async (payload) => {
+  try {
+    if (!payload.pointId) {
       throw new Error("No point id provided");
     }
     const cashbackModel = await cashbackModels();
     const point = await cashbackModel.Point.findById(payload.pointId);
-    const [customer,wallet] = await Promise.all([
-      cashbackModel.Customer.findOne({customerId : point.customerId}).lean(),
-      cashbackModel.Wallet.findOne({customerId: point.customerId}).lean()
+    const [customer, wallet] = await Promise.all([
+      cashbackModel.Customer.findOne({ customerId: point.customerId }).lean(),
+      cashbackModel.Wallet.findOne({ customerId: point.customerId }).lean(),
     ]);
     const moePayload = {
-      eventName: 'cashback_manual_assign',
+      eventName: "cashback_manual_assign",
       customerPhone: customer.phone,
-      params:{
-        pointId : point._id,
+      params: {
+        pointId: point._id,
         amount: point.amount,
-        walletId : point.walletId,
-        expiresOn: point.expiresOn
-      }
+        walletId: point.walletId,
+        expiresOn: point.expiresOn,
+      },
     };
     await createMoengageEvent(moePayload);
     await handleCashbackUpdateForMoe(point._id, payload.shop);
-    console.log("handled cashback manual distribution")
-
-  }catch(err){
+    console.log("handled cashback manual distribution");
+  } catch (err) {
     throw new Error(
       "Failed to handle cashback manual distribution reason --> " + err.message
-    ); 
+    );
   }
-}
+};
 export {
   updateCustomerWithEmptyPhoneField,
   assignCashbackPendingAssignedToCustomer,
@@ -1410,5 +1409,5 @@ export {
   handleCashbackRefund,
   handleManualCashbackDistribution,
   getCustomersRedeemableValueBasedOnCart,
-  handleCashbackManualDistribution
+  handleCashbackManualDistribution,
 };

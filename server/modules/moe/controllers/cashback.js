@@ -13,9 +13,11 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
   amount,
   customerId
 ) => {
-  console.log('creating cancellation refund event in moe')
-  if(amount <= 0){
-    console.log("cashback_cancel_refund not passed to moe as the amount is zero")
+  console.log("creating cancellation refund event in moe",{amount,customerId});
+  if (amount <= 0) {
+    console.log(
+      "cashback_cancel_refund not passed to moe as the amount is zero"
+    );
     return;
   }
   const cashbackModel = await cashbackModels();
