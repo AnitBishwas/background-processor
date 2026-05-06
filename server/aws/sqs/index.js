@@ -72,6 +72,7 @@ const handleMessages = async (message, meta = {}) => {
       await handleCashbackBulkDistribution(payload, meta);
       console.log("processed cashback bulk distribution ✅");
     }else if(topic == "CASHBACK_Manual_DISTRIBUTION"){
+       console.log("processing cashback manual distribution ✅")
       await handleCashbackManualDistribution(payload);
       console.log("processed cashback manual distribution ✅")
     }
