@@ -144,6 +144,7 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
     );
   }
 };
+
 export {
   handleCashbackUpdateForMoe,
   cashbackCreditedEventInMoe,

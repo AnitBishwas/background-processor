@@ -9,7 +9,9 @@ import {
   assignCashbackPendingAssignedToCustomer,
   debitCashbackOnUtilisation,
   handleCashbackCancellation,
+  handleCashbackManualDistribution,
   handleCashbackRefund,
+  handleManualCashbackDistribution,
   markPendingCashbackToReady,
 } from "../../modules/cashback/controllers/index.js";
 import { handleCashbackBulkDistribution } from "../../modules/cashback/controllers/bulkDistribution.js";
@@ -17,7 +19,7 @@ import pLimit from "p-limit";
 
 /**
  * List of topics
- * ["ORDER_CREATE","CASHBACK_PENDING_ASSIGNED","CASHBACK_UTILISED","ORDER_CANCEL","CASHBACK_CANCEL","ORDER_DELIVERED","CASHBACK_ASSIGN","ORDER_REFUND","CASHBACK_REFUND","CASHBACK_BULK_DISTRIBUTION"]
+ * ["ORDER_CREATE","CASHBACK_PENDING_ASSIGNED","CASHBACK_UTILISED","ORDER_CANCEL","CASHBACK_CANCEL","ORDER_DELIVERED","CASHBACK_ASSIGN","ORDER_REFUND","CASHBACK_REFUND","CASHBACK_BULK_DISTRIBUTION","CASHBACK_Manual_DISTRIBUTION"]
  *
  */
 
@@ -69,6 +71,9 @@ const handleMessages = async (message, meta = {}) => {
       console.log("recieved cashback bulk distribution ✅");
       await handleCashbackBulkDistribution(payload, meta);
       console.log("processed cashback bulk distribution ✅");
+    }else if(topic == "CASHBACK_Manual_DISTRIBUTION"){
+      await handleCashbackManualDistribution(payload);
+      console.log("processed cashback manual distribution ✅")
     }
   } catch (err) {
     console.log("Failed to handle messages reason -->" + err.message);
