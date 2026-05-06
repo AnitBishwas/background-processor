@@ -35,7 +35,7 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
     await createMoengageEvent({
       eventName: "cashback_cancel_refund",
       customerPhone: customer.phone,
-      ...moePayload,
+      params:{...moePayload}
     });
     await updateMoeUserAttribute(customer.phone, moePayload);
   } catch (err) {
