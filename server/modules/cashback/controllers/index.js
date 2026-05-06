@@ -930,11 +930,9 @@ const handleCashbackCancellation = async (payload) => {
     );
 
     await session.commitTransaction();
-    // handleCashbackRefundEventOnCancellationInMoe
     handleCashbackRefundEventOnCancellationInMoe(
       refundable,
-      Number(customerWallet.
-      balance || 0)
+      customerWallet.customerId
     );
     return {
       ok: true,
