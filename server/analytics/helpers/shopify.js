@@ -24,6 +24,7 @@ const getProductVariantDataFromShopify = async (shop, variantId) => {
           compareAtPrice
           product{
             title
+            tags
           }
           price
           sku
