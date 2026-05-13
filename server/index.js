@@ -28,7 +28,7 @@ import { pollSQSQueue } from "./aws/sqs/index.js";
 import cashbackModels from "../utils/cashbackModelProvider.js";
 import publicRoutes from "./routes/public_routes/index.js";
 import "./jobs/index.js";
-
+import exotelRoutes from "./modules/exotel/routes/exotelRoutes.js";
 setupCheck(); // Run a check to ensure everything is setup properly
 
 const PORT = parseInt(process.env.PORT, 10) || 8081;
@@ -55,6 +55,7 @@ const createServer = async (root = process.cwd()) => {
   );
 
   app.use(Express.json());
+  app.use("/exotel", exotelRoutes);
 
   app.post("/api/graphql", verifyRequest, async (req, res) => {
     try {

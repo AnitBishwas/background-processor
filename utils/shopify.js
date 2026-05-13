@@ -79,3 +79,23 @@ shopify = {
 };
 
 export default shopify;
+
+export const clientProvider = async (query, variables = {}) => {
+  try {
+    const client = new shopify.clients.Graphql({
+      session: {
+        shop: process.env.SHOPIFY_SHOP_NAME,
+        accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
+      },
+    });
+
+    const response = await client.request(query, {
+      variables,
+    });
+
+    return response;
+  } catch (err) {
+    console.log("SHOPIFY CLIENT ERROR =>", err);
+    throw err;
+  }
+};
