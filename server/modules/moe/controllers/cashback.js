@@ -145,7 +145,7 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
     await createMoengageEvent({
       eventName: "cashback_assigned_v2",
       customerPhone: customerPhone,
-      params: {...moePayload},
+      params: { ...moePayload },
     });
   } catch (err) {
     console.log(

@@ -13,7 +13,7 @@ import { getOrderTrackingController } from "../controllers/shopify.js";
 
 const exotelRoutes = Router();
 
-exotelRoutes.post("/tracking/order", getOrderTrackingController);
+// exotelRoutes.post("/tracking/order", getOrderTrackingController);
 
 exotelRoutes.get("/json", (req, res) => {
   console.log("request was ");

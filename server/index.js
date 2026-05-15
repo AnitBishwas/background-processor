@@ -55,7 +55,7 @@ const createServer = async (root = process.cwd()) => {
   );
 
   app.use(Express.json());
-  app.use("/exotel", exotelRoutes);
+
 
   app.post("/api/graphql", verifyRequest, async (req, res) => {
     try {
