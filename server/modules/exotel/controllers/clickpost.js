@@ -151,7 +151,7 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
             current_status: "failed-delivery",
             tracking_data: shipment,
           };
-        }
+        } 
 
         /**
          * OUT FOR DELIVERY

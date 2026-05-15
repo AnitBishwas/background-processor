@@ -26,7 +26,7 @@ const MODULES = [
     label: "Exotel-Clickpost Public API",
     value: "exotel",
     prefix: "/public/exotel",
-  }
+  },
   // add more modules...
 ];
 
