@@ -22,6 +22,11 @@ const MODULES = [
     value: "limechat",
     prefix: "/public/limechat",
   },
+  {
+    label: "Exotel-Clickpost Public API",
+    value: "exotel",
+    prefix: "/public/exotel",
+  },
   // add more modules...
 ];
 
@@ -124,7 +129,7 @@ const Secrets = () => {
               label="Client ID"
               value={clientId}
               onChange={setClientId}
-              placeholder="e.g. Gokwik, limechat"
+              placeholder="e.g. Gokwik, limechat, exotel"
               autoComplete="off"
               helpText="Used to identify who accessed the endpoint (later, if needed)."
             />

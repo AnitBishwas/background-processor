@@ -13,7 +13,10 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
   amount,
   customerId
 ) => {
-  console.log("creating cancellation refund event in moe",{amount,customerId});
+  console.log("creating cancellation refund event in moe", {
+    amount,
+    customerId,
+  });
   if (amount <= 0) {
     console.log(
       "cashback_cancel_refund not passed to moe as the amount is zero"
@@ -35,7 +38,7 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
     await createMoengageEvent({
       eventName: "cashback_cancel_refund",
       customerPhone: customer.phone,
-      params:{...moePayload}
+      params: { ...moePayload },
     });
     await updateMoeUserAttribute(customer.phone, moePayload);
   } catch (err) {
@@ -142,7 +145,7 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
     await createMoengageEvent({
       eventName: "cashback_assigned_v2",
       customerPhone: customerPhone,
-      params: {...moePayload},
+      params: { ...moePayload },
     });
   } catch (err) {
     console.log(
