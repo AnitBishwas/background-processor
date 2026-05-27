@@ -272,6 +272,7 @@ const mapOrderCancellation = async (order) => {
     const isOrderCancellable = order.fulfillments.length == 0;
     if (isOrderCancellable) {
       const makeCancelRequest = await cancelOrder(order);
+      
       if (!makeCancelRequest) {
         return `Failed to cancel your order please connect with our executives`;
       }
