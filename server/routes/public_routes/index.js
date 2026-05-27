@@ -22,6 +22,6 @@ publicRoutes.use(publicApiKeyAuth);
 
 publicRoutes.use("/cashback", cashbackPublicRoutes);
 publicRoutes.use("/limechat", limeChaRoutes);
-publicRoutes.use("/exotel",exotelRoutes);
+publicRoutes.use("/exotel", exotelRoutes);
 
 export default publicRoutes;

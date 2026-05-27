@@ -1,5 +1,10 @@
-import { clientProvider } from "../../../../utils/shopify.js";
 import { getTrackingStatusFromClickPost } from "./clickpost.js";
+import clientProvider from "../../../../utils/clientProvider.js";
+
+const shop =
+  process.env.NODE_ENV == "dev"
+    ? "swiss-local-dev.myshopify.com"
+    : "swiss-beauty-dev.myshopify.com";
 
 const getOrderStatusByPhoneNumber = async (phone) => {
   try {
@@ -88,9 +93,12 @@ const getCustomerIdByPhoneNumber = async (phone) => {
         phoneNumber: phone,
       },
     };
-    console.log(variables);
-    const request = await clientProvider(query, variables);
-    const response = request.data.customer ? request.data.customer.id : null;
+
+    const { client } = await clientProvider.offline.graphqlClient({ shop });
+    const { data, extensions, errors } = await client.request(query, {
+      variables,
+    });
+    const response = data.customer ? data.customer.id : null;
     if (!response) {
       throw new Error("No customer found");
     }
@@ -150,8 +158,9 @@ const getOrderByCustomerId = async (customerId) => {
         }
       }
     }`;
-    const request = await clientProvider(query);
-    let order = request.data.orders.edges[0];
+    const { client } = await clientProvider.offline.graphqlClient({ shop });
+    const { data, extensions, errors } = await client.request(query);
+    let order = data.orders.edges[0];
     if (!order) {
       return null;
     }
@@ -220,9 +229,10 @@ const getOrderByOrderName = async (orderName) => {
         }
       }
     }`;
-    const res = await clientProvider(query);
-    console.log("SHOPIFY RESPONSE =>", JSON.stringify(res, null, 2));
-    let order = res.data.orders.edges[0];
+    const { client } = await clientProvider.offline.graphqlClient({ shop });
+    const { data, extensions, errors } = await client.request(query);
+
+    let order = data.orders.edges[0];
     if (!order) {
       return null;
     }
@@ -275,8 +285,10 @@ const cancelOrder = async (order) => {
       reason: "CUSTOMER",
       staffNote: "Order cancelled via IVR",
     };
-    const res = await clientProvider(query, variables);
-    const data = res.data;
+    const { client } = await clientProvider.offline.graphqlClient({ shop });
+    const { data, extensions, errors } = await client.request(query, {
+      variables,
+    });
     if (
       data.orderCancel?.orderCancelUserErrors.length == 0 &&
       data.orderCancel?.userErrors.length == 0
@@ -641,8 +653,9 @@ const getLastFiverOrdersByCustomerId = async (customerId) => {
         }
       }
     }`;
-    const request = await clientProvider(query);
-    let orders = request.data.orders.edges;
+    const { client } = await clientProvider.offline.graphqlClient({ shop });
+    const { data, extensions, errors } = await client.request(query);
+    let orders = data.orders.edges;
     if (orders.length == 0) {
       return [];
     }

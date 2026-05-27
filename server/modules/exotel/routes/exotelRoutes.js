@@ -43,12 +43,9 @@ exotelRoutes.get("/:path", async (req, res) => {
   try {
     const flowId = req.path.replace("/", "") ? req.path.replace("/", "") : null;
 
-    console.log("request was hit to path and here is the path" + flowId);
-
     if (!flowId) {
       throw new Error("Flow id missing");
     }
-
     const { CallSid } = req.query;
 
     const customerPhone = req.query.From ? req.query.From : null;
