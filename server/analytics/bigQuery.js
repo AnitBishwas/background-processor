@@ -107,6 +107,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
         productId: el.productId,
         variant: el.variant,
         currentInventory: el.currentInventory,
+        tags: el.tags || ""
       })),
       event_date: new Date().toISOString(),
       timestamp: Date.now(),
