@@ -107,7 +107,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
         productId: el.productId,
         variant: el.variant,
         currentInventory: el.currentInventory,
-        tags: el.tags || ""
+        tags: el.tags || "",
       })),
       event_date: new Date().toISOString(),
       timestamp: Date.now(),
@@ -116,7 +116,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
   } catch (err) {
     throw new Error(
       "Failed to create custom purchase event in bigquery reason -->" +
-      err.message
+        err.message
     );
   }
 };
@@ -181,11 +181,11 @@ const createOrderCancelledEventInBigQuery = async (shop, payload) => {
         ? true
         : false,
       utmSource:
-        payload.note_attributes.find((el) => el.name == "utm_source")
-          ?.value || "",
+        payload.note_attributes.find((el) => el.name == "utm_source")?.value ||
+        "",
       utmMedium:
-        payload.note_attributes.find((el) => el.name == "utm_medium")
-          ?.value || "",
+        payload.note_attributes.find((el) => el.name == "utm_medium")?.value ||
+        "",
       utmCampaign:
         payload.note_attributes.find((el) => el.name == "utm_campaign")
           ?.value || "",
@@ -206,90 +206,38 @@ const createOrderCancelledEventInBigQuery = async (shop, payload) => {
       customerEmail: payload.customer ? payload.customer.email : null,
       lineItems: lineItemDetails,
     };
-    let structuredData = {
-    orderId: payload.name,
-    shopifyOrderId: payload.id,
-    createdAt: payload.created_at,
-    couponCode: payload.discount_codes[0]?.code || "",
-    couponValue: payload.discount_codes[0]?.amount
-      ? Number(payload.discount_codes[0]?.amount)
-      : 0,
-    totalPrice: payload.total_price ? Number(payload.total_price) : 0,
-    shippingPrice: payload?.total_shipping_price_set?.shop_money?.amount
-      ? Number(payload?.total_shipping_price_set?.shop_money?.amount)
-      : 0,
-    subTotalPrice: payload?.subtotal_price
-      ? Number(payload.subtotal_price)
-      : 0,
-    partiallyPaidAmount:
-      Number(payload.total_outstanding) < Number(payload.total_price)
-        ? Number(payload.total_price) - Number(payload.total_outstanding)
-        : 0,
-    isSwissCashUtilised: payload.tags
-      .toLowerCase()
-      .split(",")
-      .map((el) => el.trim())
-      .find((el) => el == "swiss cash")
-      ? true
-      : false,
-    utmSource:
-      payload.note_attributes.find((el) => el.name == "utm_source")?.value ||
-      "",
-    utmMedium:
-      payload.note_attributes.find((el) => el.name == "utm_medium")?.value ||
-      "",
-    utmCampaign:
-      payload.note_attributes.find((el) => el.name == "utm_campaign")
-        ?.value || "",
-    landingPage:
-      payload.note_attributes.find((el) => el.name == "full_url")?.value ||
-      "",
-    cod: payload.tags
-      .toLowerCase()
-      .split(",")
-      .map((el) => el.trim())
-      .find((el) => el == "cod")
-      ? true
-      : false,
-    customerName: payload.customer
-      ? payload.customer.first_name + " " + payload.customer.last_name
-      : null,
-    customerPhone: payload.customer ? payload.customer.phone : null,
-    customerEmail: payload.customer ? payload.customer.email : null,
-    lineItems: lineItemDetails,
-  };
-  let excludeKeys = new Set(["lineItems"]);
-  let eventParams = Object.entries(structuredData)
-    .filter(([key]) => !excludeKeys.has(key))
-    .map(([key, value]) => ({
-      key,
-      value: convertValue(value),
-    }));
-  let eventPayload = {
-    event_name: "order_cancelled_v2",
-    event_params: eventParams,
-    items: structuredData.lineItems.map((el) => ({
-      variantId: el.id + "",
-      quantity: el.quantity,
-      ean: el.ean,
-      mrp: el.mrp,
-      price: el.price,
-      sku: el.sku,
-      title: el.title,
-      productId: el.productId,
-      variant: el.variant,
-      currentInventory: el.currentInventory,
-    })),
-    event_date: new Date().toISOString(),
-    timestamp: Date.now(),
-  };
-  const insertion = await insertBigqueryEvent(eventPayload);
-} catch (err) {
-  throw new Error(
-    "Failed to create custom order cancel in bigquery reason -->" +
-    err.message
-  );
-}
+    let excludeKeys = new Set(["lineItems"]);
+    let eventParams = Object.entries(structuredData)
+      .filter(([key]) => !excludeKeys.has(key))
+      .map(([key, value]) => ({
+        key,
+        value: convertValue(value),
+      }));
+    let eventPayload = {
+      event_name: "order_cancelled_v2",
+      event_params: eventParams,
+      items: structuredData.lineItems.map((el) => ({
+        variantId: el.id + "",
+        quantity: el.quantity,
+        ean: el.ean,
+        mrp: el.mrp,
+        price: el.price,
+        sku: el.sku,
+        title: el.title,
+        productId: el.productId,
+        variant: el.variant,
+        currentInventory: el.currentInventory,
+      })),
+      event_date: new Date().toISOString(),
+      timestamp: Date.now(),
+    };
+    const insertion = await insertBigqueryEvent(eventPayload);
+  } catch (err) {
+    throw new Error(
+      "Failed to create custom order cancel in bigquery reason -->" +
+        err.message
+    );
+  }
 };
 function convertValue(value) {
   if (typeof value === "string") {
