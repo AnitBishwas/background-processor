@@ -213,6 +213,7 @@ const createOrderCancelledEventInBigQuery = async (shop, payload) => {
         key,
         value: convertValue(value),
       }));
+      
     let eventPayload = {
       event_name: "order_cancelled_v2",
       event_params: eventParams,
