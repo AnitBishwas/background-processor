@@ -39,6 +39,7 @@ const getOrderStatusByOrderId = async (orderId) => {
     if (!order) {
       throw new Error("No order exists for this order id.");
     }
+    console.dir({order,message: 'here is our order after fetch 👽'});
     const statusText = mapOrderStatus(order);
     return statusText;
   } catch (err) {
@@ -160,14 +161,14 @@ const mapOrderStatus = (order) => {
         order.tracking.delivered.date
       ).toDateString()}`;
     }
-    const isRto = order.fulfillments.length > 0 && order.tracking.rto_date.ok;
+    const isRto = order.fulfillments.length > 0 && order.tracking.rto_date?.ok;
     if (isRto) {
       return `Your order was marked as returned on ${new Date(
         order.tracking.rto_date
       ).toDateString()}.  For prepaid orders, refunds are processed in 5 – 7 business days in original mode of payment.`;
     }
     const attempted_delivery =
-      order.fulfillments.length > 0 && order.tracking.attempted_delivery.ok;
+      order.fulfillments.length > 0 && order.tracking.attempted_delivery?.ok;
     const attempted_delivery_count =
       order?.tracking?.attempted_delivery?.attempt_count;
     if (attempted_delivery && attempted_delivery_count < 3) {
@@ -272,7 +273,7 @@ const mapOrderCancellation = async (order) => {
     const isOrderCancellable = order.fulfillments.length == 0;
     if (isOrderCancellable) {
       const makeCancelRequest = await cancelOrder(order);
-      
+
       if (!makeCancelRequest) {
         return `Failed to cancel your order please connect with our executives`;
       }
