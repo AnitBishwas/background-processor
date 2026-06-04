@@ -5,7 +5,7 @@ const extractApiKey = (req) => {
   const headerKey = req.headers["x-api-key"];
 
   if (headerKey) return headerKey.trim();
-  const auth = req.headers["authorization"];
+  const auth = req.headers["authorization"] || req.query["authorization"];
   if (auth && auth.toLowerCase().startsWith("bearer ")) {
     return auth.slice(7).trim();
   } else if (auth) {
