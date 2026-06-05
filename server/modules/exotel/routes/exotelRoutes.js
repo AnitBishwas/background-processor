@@ -39,6 +39,33 @@ exotelRoutes.get("/message", async (req, res) => {
   } catch (err) {}
 });
 
+
+// import { mapOrderStatus } from "../controllers/actions.js";
+
+// exotelRoutes.post("/test/message", (req, res) => {
+//   const { status } = req.body;
+
+//   const order = {
+//     fulfillments: [{}],
+//     tracking: {
+//       success: true,
+//       current_status: status,
+//       tracking_data: {
+//         latest_status: {
+//           timestamp: new Date().toISOString(),
+//         },
+//       },
+//     },
+//   };
+
+//   const message = mapOrderStatus(order);
+
+//   return res.json({
+//     status,
+//     message,
+//   });
+// });
+
 exotelRoutes.get("/:path", async (req, res) => {
   try {
     const flowId = req.path.replace("/", "") ? req.path.replace("/", "") : null;

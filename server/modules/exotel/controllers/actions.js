@@ -177,6 +177,10 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
       return `Your order is shipped. Tracking details are currently being updated. Kindly check your WhatsApp or email for the tracking link.`;
     }
 
+    if (currentStatus === "packed") {
+      return `Your order is packed and will be shipped soon. Once shipped, tracking details will be shared with you on WhatsApp and email.`;
+    }
+
     if (currentStatus === "delivered") {
       const deliveredDate = formatDate(getLatestDate(trackingData));
 
@@ -197,6 +201,14 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
       return `Your order was marked as returned. For prepaid orders, refunds are processed in 5–7 business days in original mode of payment.`;
     }
 
+    if (currentStatus === "lost") {
+      return `Your order is currently marked as lost by the courier partner. After this message, we will help you connect with one of our executives for further assistance.`;
+    }
+
+    if (currentStatus === "damaged") {
+      return `We’re sorry, but your order has been marked as damaged by the courier partner. Please select an option to connect with our support team for further assistance.`;
+    }
+
     if (currentStatus === "failed-delivery") {
       const attemptDate = formatDate(getLatestDate(trackingData));
 
@@ -215,17 +227,17 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
       const edd = formatDate(getEdd(trackingData));
 
       if (edd) {
-        return `Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
+        return ` Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
       }
 
-      return `Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+      return ` Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
     }
 
-    return `Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+    return ` Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
   } catch (err) {
     throw new Error("Failed to map order status reason -->" + err.message);
   }
-};
+}; 
 
 const mapOrderRefundStatus = (order) => {
   try {
