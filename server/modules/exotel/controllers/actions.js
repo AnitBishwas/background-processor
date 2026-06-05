@@ -162,6 +162,8 @@ const mapOrderStatus = (order) => {
 
     const currentStatus = tracking?.current_status;
 
+    console.log("status againstt order", currentStatus, tracking)
+
     if (order?.cancelledAt) {
       return `Your order was cancelled successfully on ${formatDate(
         order.cancelledAt
