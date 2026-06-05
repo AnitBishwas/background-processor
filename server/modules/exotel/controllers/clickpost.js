@@ -117,6 +117,17 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
         console.log("LATEST STATUS =>", latestStatus);
 
         /**
+         * RTO
+         */
+        if (latestStatus.includes("rto")) {
+          return {
+            success: true,
+            current_status: "rto",
+            tracking_data: shipment,
+          };
+        }
+
+        /**
          * DELIVERED
          */
         if (latestStatus.includes("delivered")) {
@@ -127,16 +138,7 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
           };
         }
 
-        /**
-         * RTO
-         */
-        if (latestStatus.includes("rto")) {
-          return {
-            success: true,
-            current_status: "rto",
-            tracking_data: shipment,
-          };
-        }
+        
 
         /**
          * FAILED DELIVERY / NDR
