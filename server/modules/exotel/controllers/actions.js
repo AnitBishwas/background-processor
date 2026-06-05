@@ -206,7 +206,7 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
     }
 
     if (currentStatus === "damaged") {
-      return `Your order is currently marked as damaged by the courier partner. After this message, we will help you connect with one of our executives for further assistance.`;
+      return `We’re sorry, but your order has been marked as damaged by the courier partner. Please select an option to connect with our support team for further assistance.`;
     }
 
     if (currentStatus === "failed-delivery") {
