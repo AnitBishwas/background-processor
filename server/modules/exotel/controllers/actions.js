@@ -227,13 +227,13 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
       const edd = formatDate(getEdd(trackingData));
 
       if (edd) {
-        return `hello Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
+        return ` Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
       }
 
-      return `hello Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+      return ` Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
     }
 
-    return `hello Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+    return ` Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
   } catch (err) {
     throw new Error("Failed to map order status reason -->" + err.message);
   }
