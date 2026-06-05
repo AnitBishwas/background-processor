@@ -89,6 +89,7 @@ const mapClickPostStatus = (shipment) => {
   if (
     statusCode === 6 ||
     latestStatus.includes("outfordelivery") ||
+    latestStatus.includes("dispatched") ||
     latestStatus.includes("ofd")
   ) {
     return "out-for-delivery";
@@ -128,7 +129,6 @@ const mapClickPostStatus = (shipment) => {
     latestStatus.includes("shipmentdelayed") ||
     latestStatus.includes("contactcustomercare") ||
     latestStatus.includes("transit") ||
-    latestStatus.includes("dispatched") ||
     latestStatus.includes("shipped")
   ) {
     return "in-transit";
