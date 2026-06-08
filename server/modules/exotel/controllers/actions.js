@@ -176,7 +176,7 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
     }
 
     if (!tracking?.success) {
-      return `Your order is shipped. Tracking details are currently being updated. Kindly check your WhatsApp or email for the tracking link.`;
+      return `Your order is packed and will be shipped in the next 24 to 48 hours. Once shipped, tracking details will be shared with you on WhatsApp and email.`;
     }
 
     if (currentStatus === "packed") {
