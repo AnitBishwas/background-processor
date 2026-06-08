@@ -6,6 +6,8 @@ import {
 } from "./shopify.js";
 
 const safeArray = (value) => (Array.isArray(value) ? value : []);
+const normalize = (v) =>
+  (v || "").toString().trim().toLowerCase().replace(/[\s_-]+/g, "");
 
 const formatDate = (date) => {
   if (!date) return null;
@@ -162,7 +164,12 @@ const mapOrderStatus = (order) => {
 
     const currentStatus = tracking?.current_status;
 
+    const clickpostDescription = normalize(
+      trackingData?.latest_status?.clickpost_status_description
+    );
+
     console.log("STATUS AGAINST ORDER =>", currentStatus, tracking);
+    console.log("CLICKPOST DESCRIPTION IN ACTIONS =>", clickpostDescription);
 
     if (order?.cancelledAt) {
       return `Your order was cancelled successfully on ${formatDate(
@@ -171,16 +178,23 @@ const mapOrderStatus = (order) => {
     }
 
     if (fulfillments.length === 0) {
-      return `Your order has been successfully confirmed and is expected to be delivered within 2–5 working days.
-Note: Once your order is packed, we’ll share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
+      return `Your order has been successfully confirmed and is expected to be delivered within 2 to 5 working days.
+Note: Once your order is packed, we will share the tracking details with you on both email and WhatsApp, so you can follow the delivery every step of the way.`;
     }
 
-    if (!tracking?.success) {
+    if (
+      currentStatus === "packed" ||
+      clickpostDescription === "orderplaced" ||
+      clickpostDescription === "awbregistered" ||
+      clickpostDescription === "pickuppending" ||
+      clickpostDescription === "pickupfailed" ||
+      clickpostDescription === "outforpickup"
+    ) {
       return `Your order is packed and will be shipped in the next 24 to 48 hours. Once shipped, tracking details will be shared with you on WhatsApp and email.`;
     }
 
-    if (currentStatus === "packed") {
-      return `Your order is packed and will be shipped soon. Once shipped, tracking details will be shared with you on WhatsApp and email.`;
+    if (!tracking?.success) {
+      return `Your order is shipped. Tracking details are currently being updated. Kindly check your WhatsApp or email for the tracking link.`;
     }
 
     if (currentStatus === "delivered") {
@@ -197,10 +211,10 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
       const rtoDate = formatDate(getLatestDate(trackingData));
 
       if (rtoDate) {
-        return `Your order was marked as returned on ${rtoDate}. For prepaid orders, refunds are processed in 5–7 business days in original mode of payment.`;
+        return `Your order was marked as returned on ${rtoDate}. For prepaid orders, refunds are processed in 2 to 7 business days in original mode of payment.`;
       }
 
-      return `Your order was marked as returned. For prepaid orders, refunds are processed in 5–7 business days in original mode of payment.`;
+      return `Your order was marked as returned. For prepaid orders, refunds are processed in 2 to 7 business days in original mode of payment.`;
     }
 
     if (currentStatus === "lost") {
@@ -232,10 +246,10 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
         return `Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
       }
 
-      return `Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+      return `Your order is currently in transit and will be delivered to you soon. Kindly check your WhatsApp or email for the tracking link.`;
     }
 
-    return `Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+    return `Your order is currently in transit and will be delivered to you soon. Kindly check your WhatsApp or email for the tracking link.`;
   } catch (err) {
     throw new Error("Failed to map order status reason -->" + err.message);
   }
@@ -256,7 +270,7 @@ const mapOrderRefundStatus = (order) => {
     );
 
     if (isCod) {
-      return `Refund for your latest order is not eligible as you placed a cash on delivery order. To know about our refund policy, you can check the message on WhatsApp that will be sent to you shortly.`;
+      return `Refund for your latest order is not eligible as you placed a cash on delivery order. To know about our refund policy, you can refer it on www.swissbeauty.in.`;
     }
 
     const refunds = safeArray(order?.refunds);
@@ -266,11 +280,11 @@ const mapOrderRefundStatus = (order) => {
         .map((el) => Number(el?.totalRefunded?.amount || 0))
         .reduce((total, el) => total + el, 0);
 
-      return `Refund for your latest order of amount ${totalRefundedAmount} was successfully credited in your original mode of payment. Please check your bank account for more details.`;
+      return `Refund for your latest order of amount ${totalRefundedAmount} was successfully credited in your original mode of payment and will reflect in your account in 2 to 5 working days. Please check your bank account for more details.`;
     }
 
     if (tags.includes("Refund_initiated")) {
-      return `Refund for your latest order of amount ${refundAmount} was initiated successfully and will be credited within 5-7 working days in your original mode of payment from the date of initiation.`;
+      return `Refund for your latest order of amount ${refundAmount} was initiated successfully and will be credited within 2 to 7 working days in your original mode of payment from the date of initiation.`;
     }
 
     if (
@@ -282,8 +296,7 @@ const mapOrderRefundStatus = (order) => {
     }
 
     if (currentStatus === "delivered") {
-      return `Refund for your latest order of amount ${refundAmount} is not eligible as the current status of your order is delivered.
-To know about our refund policy, you can check the message on WhatsApp that will be sent to you shortly.`;
+      return `Refund for your latest order of amount ${refundAmount} is not eligible as the current status of your order is delivered. To know about our refund policy, you can refer it on www.swissbeauty.in.`;
     }
 
     if (
@@ -291,11 +304,10 @@ To know about our refund policy, you can check the message on WhatsApp that will
       currentStatus === "out-for-delivery" ||
       currentStatus === "failed-delivery"
     ) {
-      return `Refund for your latest order of amount ${refundAmount} is not eligible as the current status of your order is in transit.
-To know about our refund policy, you can check the message on WhatsApp that will be sent to you shortly.`;
+      return `Refund for your latest order of amount ${refundAmount} is not eligible as the current status of your order is in transit. To know about our refund policy, you can refer it on www.swissbeauty.in.`;
     }
 
-    return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account.`;
+    return `Please note, for prepaid orders, it usually takes 2 to 7 working days for the refund to be credited in your source account.`;
   } catch (err) {
     throw new Error(
       "Failed to map order refund status reason -->" + err.message
@@ -326,7 +338,7 @@ const mapOrderCancellation = async (order) => {
 
       return `Your order placed on ${formatDate(
         isOrderCancelled
-      )} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 5 to 7 working days from the date of cancellation.`;
+      )} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
     }
 
     if (fulfillments.length === 0) {
@@ -347,7 +359,7 @@ const mapOrderCancellation = async (order) => {
 
       return `Your order placed on ${formatDate(
         order?.createdAt
-      )} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 5 to 7 working days from the date of cancellation.`;
+      )} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
     }
 
     return `Your current order status is in transit. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;

@@ -13,7 +13,7 @@ const extractCpIdFromUrl = (url) => {
     const parsed = new URL(url);
     const cpId = parsed.searchParams.get("cp_id");
     return cpId ? Number(cpId) : null;
-  } catch (err) {
+  } catch {
     return null;
   }
 };
@@ -31,7 +31,7 @@ const extractCpIdsFromShopifyOrder = (shopifyOrder, awb) => {
         const trackingNumber = tracking?.number;
         const trackingUrl = tracking?.url;
 
-        if (trackingNumber && trackingNumber.toString() === awb.toString()) {
+        if (trackingNumber?.toString() === awb?.toString()) {
           const cpId = extractCpIdFromUrl(trackingUrl);
           if (cpId) cpIds.add(cpId);
         }
@@ -39,7 +39,7 @@ const extractCpIdsFromShopifyOrder = (shopifyOrder, awb) => {
     }
 
     return [...cpIds];
-  } catch (err) {
+  } catch {
     return [];
   }
 };
@@ -55,11 +55,8 @@ const mapClickPostStatus = (shipment) => {
   console.log("CLICKPOST DESCRIPTION =>", description);
   console.log("CLICKPOST BUCKET DESCRIPTION =>", bucketDescription);
 
-  // Main mapping: clickpost_status_description based
   if (description.includes("rto")) return "rto";
-
   if (description === "delivered") return "delivered";
-
   if (description === "outfordelivery") return "out-for-delivery";
 
   if (
@@ -83,18 +80,13 @@ const mapClickPostStatus = (shipment) => {
   }
 
   if (description === "faileddelivery") return "failed-delivery";
-
   if (description === "lost") return "lost";
-
   if (description === "damaged") return "damaged";
 
-  // Safe fallback: bucket description only
   if (bucketDescription.includes("rto")) return "rto";
   if (bucketDescription.includes("returned")) return "rto";
   if (bucketDescription.includes("delivered")) return "delivered";
   if (bucketDescription.includes("outfordelivery")) return "out-for-delivery";
-  if (bucketDescription.includes("outfordelivery")) return "out-for-delivery";
-  if (bucketDescription.includes("orderplaced")) return "packed";
   if (bucketDescription.includes("order")) return "packed";
   if (bucketDescription.includes("intransit")) return "in-transit";
   if (bucketDescription.includes("transit")) return "in-transit";
@@ -105,12 +97,9 @@ const mapClickPostStatus = (shipment) => {
 
 export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
   try {
-    if (!awb) {
-      throw new Error("AWB missing");
-    }
+    if (!awb) throw new Error("AWB missing");
 
     const dynamicCpIds = extractCpIdsFromShopifyOrder(shopifyOrder, awb);
-
     console.log("DYNAMIC CP_IDS =>", dynamicCpIds);
 
     if (!dynamicCpIds.length) {
@@ -125,18 +114,13 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
 
         const response = await fetch(url, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         });
 
         const data = await response.json();
-
         console.log("CLICKPOST RESPONSE =>", JSON.stringify(data, null, 2));
 
-        const result = data?.result || {};
-        const shipment = result?.[awb] || {};
-
+        const shipment = data?.result?.[awb] || {};
         console.log("CLICKPOST FINAL =>", JSON.stringify(shipment, null, 2));
 
         if (!shipment?.latest_status) {
@@ -144,7 +128,6 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
         }
 
         const currentStatus = mapClickPostStatus(shipment);
-
         console.log("CLICKPOST FINAL STATUS =>", currentStatus);
 
         return {
