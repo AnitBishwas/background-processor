@@ -39,8 +39,7 @@ exotelRoutes.get("/message", async (req, res) => {
   } catch (err) {}
 });
 
-
-// import { mapOrderStatus } from "../controllers/actions.js";
+//import { mapOrderStatus } from "../controllers/actions.js";
 
 // exotelRoutes.post("/test/message", (req, res) => {
 //   const { status } = req.body;

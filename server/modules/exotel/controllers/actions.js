@@ -162,7 +162,7 @@ const mapOrderStatus = (order) => {
 
     const currentStatus = tracking?.current_status;
 
-    console.log("status againstt order", currentStatus, tracking)
+    console.log("STATUS AGAINST ORDER =>", currentStatus, tracking);
 
     if (order?.cancelledAt) {
       return `Your order was cancelled successfully on ${formatDate(
@@ -229,17 +229,17 @@ Note: Once your order is packed, we’ll share the tracking details with you on 
       const edd = formatDate(getEdd(trackingData));
 
       if (edd) {
-        return ` Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
+        return `Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
       }
 
-      return ` Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+      return `Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
     }
 
-    return ` Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
+    return `Your order is shipped and currently in transit. Kindly check your WhatsApp or email for the tracking link.`;
   } catch (err) {
     throw new Error("Failed to map order status reason -->" + err.message);
   }
-}; 
+};
 
 const mapOrderRefundStatus = (order) => {
   try {
@@ -249,8 +249,7 @@ const mapOrderRefundStatus = (order) => {
     const tracking = getClickPostTracking(order);
     const currentStatus = tracking?.current_status;
 
-    const refundAmount =
-      order?.currentTotalPriceSet?.shopMoney?.amount || null;
+    const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
     const isCod = paymentGatewayNames.find(
       (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
@@ -364,5 +363,5 @@ export {
   getOrderRefundStatusByOrderId,
   cancelOrderByPhone,
   cancelOrderByOrderId,
-  mapOrderStatus
+  mapOrderStatus,
 };
