@@ -144,7 +144,7 @@
         },
         {
           "name": "CLICKPOST_USERNAME",
-          "valueFrom":"arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CLICKPOST_USERNAME::"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CLICKPOST_USERNAME::"
         },
         {
           "name": "CLICKPOST_API_KEY",

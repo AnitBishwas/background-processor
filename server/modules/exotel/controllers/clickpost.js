@@ -10,10 +10,8 @@ const normalize = (v) =>
 const extractCpIdFromUrl = (url) => {
   try {
     if (!url) return null;
-
     const parsed = new URL(url);
     const cpId = parsed.searchParams.get("cp_id");
-
     return cpId ? Number(cpId) : null;
   } catch (err) {
     return null;
@@ -49,90 +47,58 @@ const extractCpIdsFromShopifyOrder = (shopifyOrder, awb) => {
 const mapClickPostStatus = (shipment) => {
   const latest = shipment?.latest_status || {};
 
-  const latestStatus = normalize(
-    [
-      latest?.clickpost_status_description,
-      latest?.clickpost_status_bucket_description,
-      latest?.status,
-      latest?.remark,
-    ].join(" ")
+  const description = normalize(latest?.clickpost_status_description);
+  const bucketDescription = normalize(
+    latest?.clickpost_status_bucket_description
   );
 
-  const statusCode = Number(latest?.clickpost_status_code);
-  const statusBucket = Number(latest?.clickpost_status_bucket);
+  console.log("CLICKPOST DESCRIPTION =>", description);
+  console.log("CLICKPOST BUCKET DESCRIPTION =>", bucketDescription);
 
-  console.log("CLICKPOST STATUS CODE =>", statusCode);
-  console.log("CLICKPOST STATUS BUCKET =>", statusBucket);
-  console.log("CLICKPOST NORMALIZED STATUS =>", latestStatus);
+  // Main mapping: clickpost_status_description based
+  if (description.includes("rto")) return "rto";
 
-  if (
-    statusCode === 14 ||
-    statusBucket === 7 ||
-    latestStatus.includes("rto") ||
-    latestStatus.includes("returned")
-  ) {
-    return "rto";
-  }
+  if (description === "delivered") return "delivered";
 
-  if (latestStatus.includes("lost")) {
-    return "lost";
-  }
-
-  if (latestStatus.includes("damaged")) {
-    return "damaged";
-  }
-
-  if (statusCode === 8 || latestStatus.includes("delivered")) {
-    return "delivered";
-  }
+  if (description === "outfordelivery") return "out-for-delivery";
 
   if (
-    statusCode === 6 ||
-    latestStatus.includes("outfordelivery") ||
-    latestStatus.includes("dispatched") ||
-    latestStatus.includes("ofd")
-  ) {
-    return "out-for-delivery";
-  }
-
-  if (
-    statusCode === 1 ||
-    statusBucket === 1 ||
-    latestStatus.includes("orderplaced") ||
-    latestStatus.includes("awbregistered") ||
-    latestStatus.includes("pickuppending") ||
-    latestStatus.includes("pickupfailed") ||
-    latestStatus.includes("outforpickup") ||
-    latestStatus.includes("placed") ||
-    latestStatus.includes("new") ||
-    latestStatus.includes("manifested")
+    description === "orderplaced" ||
+    description === "awbregistered" ||
+    description === "pickuppending" ||
+    description === "pickupfailed" ||
+    description === "outforpickup"
   ) {
     return "packed";
   }
 
   if (
-    latestStatus.includes("faileddelivery") ||
-    latestStatus.includes("failed") ||
-    latestStatus.includes("ndr") ||
-    latestStatus.includes("undelivered") ||
-    latestStatus.includes("attempted")
-  ) {
-    return "failed-delivery";
-  }
-
-  if (
-    statusCode === 5 ||
-    statusBucket === 3 ||
-    latestStatus.includes("pickedup") ||
-    latestStatus.includes("intransit") ||
-    latestStatus.includes("destinationhubin") ||
-    latestStatus.includes("shipmentdelayed") ||
-    latestStatus.includes("contactcustomercare") ||
-    latestStatus.includes("transit") ||
-    latestStatus.includes("shipped")
+    description === "intransit" ||
+    description === "pickedup" ||
+    description === "destinationhubin" ||
+    description === "shipmentdelayed" ||
+    description === "contactcustomercare"
   ) {
     return "in-transit";
   }
+
+  if (description === "faileddelivery") return "failed-delivery";
+
+  if (description === "lost") return "lost";
+
+  if (description === "damaged") return "damaged";
+
+  // Safe fallback: bucket description only
+  if (bucketDescription.includes("rto")) return "rto";
+  if (bucketDescription.includes("returned")) return "rto";
+  if (bucketDescription.includes("delivered")) return "delivered";
+  if (bucketDescription.includes("outfordelivery")) return "out-for-delivery";
+  if (bucketDescription.includes("outfordelivery")) return "out-for-delivery";
+  if (bucketDescription.includes("orderplaced")) return "packed";
+  if (bucketDescription.includes("order")) return "packed";
+  if (bucketDescription.includes("intransit")) return "in-transit";
+  if (bucketDescription.includes("transit")) return "in-transit";
+  if (bucketDescription.includes("failed")) return "failed-delivery";
 
   return "in-transit";
 };
