@@ -371,7 +371,7 @@ const cancelOrder = async (order) => {
       mutation OrderCancel(
         $orderId: ID!,
         $notifyCustomer: Boolean,
-        $refund: Boolean!,
+        $refundMethod: OrderCancelRefundMethodInput,
         $restock: Boolean!,
         $reason: OrderCancelReason!,
         $staffNote: String
@@ -379,7 +379,7 @@ const cancelOrder = async (order) => {
         orderCancel(
           orderId: $orderId,
           notifyCustomer: $notifyCustomer,
-          refund: $refund,
+          refundMethod: $refundMethod,
           restock: $restock,
           reason: $reason,
           staffNote: $staffNote
@@ -401,22 +401,34 @@ const cancelOrder = async (order) => {
       }
     `;
 
-    const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
+    const paymentGatewayNames = safeArray(order?.paymentGatewayNames).map((el) =>
+      String(el || "").toLowerCase()
+    );
 
     const isCod = paymentGatewayNames.some(
-      (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
+      (el) =>
+        el.includes("cash_on_delivery") ||
+        el.includes("cash on delivery") ||
+        el.includes("cod") ||
+        el.includes("gokwik")
     );
 
     const variables = {
       orderId: order.id,
       notifyCustomer: true,
-      refund: !isCod,
       restock: true,
       reason: "CUSTOMER",
       staffNote: "Order cancelled via IVR",
+      refundMethod: isCod
+        ? null
+        : {
+            originalPaymentMethodsRefund: true,
+          },
     };
 
-    console.log("CANCEL VARIABLES =>", variables);
+    console.log("PAYMENT GATEWAYS =>", paymentGatewayNames);
+    console.log("IS COD =>", isCod);
+    console.log("CANCEL VARIABLES =>", JSON.stringify(variables, null, 2));
 
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const { data, errors } = await client.request(query, { variables });
@@ -439,7 +451,7 @@ const cancelOrder = async (order) => {
     if (userErrors.length) {
       return {
         success: false,
-        error: userErrors.map((e) => e.message).join(", "),
+        error: userErrors.map((e) => `${e.code || ""} ${e.message}`).join(", "),
       };
     }
 
