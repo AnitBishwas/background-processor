@@ -65,6 +65,78 @@ exotelRoutes.get("/message", async (req, res) => {
 //   });
 // });
 
+// import { mapOrderCancellation } from "../controllers/actions.js";
+
+// exotelRoutes.post("/test/cancel-mock", async (req, res) => {
+//   try {
+//     const { status = "packed", paymentType = "cod" } = req.body || {};
+
+//     const mockOrder = {
+//       id: "gid://shopify/Order/test",
+//       createdAt: new Date().toISOString(),
+//       cancelledAt: null,
+//       paymentGatewayNames:
+//         paymentType === "cod" ? ["cash_on_delivery"] : ["razorpay"],
+//       fulfillments: status === "unfulfilled" ? [] : [{}],
+//       currentTotalPriceSet: {
+//         shopMoney: {
+//           amount: "299",
+//         },
+//       },
+//       tracking: {
+//         success: true,
+//         current_status: status === "unfulfilled" ? "packed" : status,
+//         tracking_data: {
+//           latest_status: {
+//             clickpost_status_description:
+//               status === "packed" || status === "unfulfilled"
+//                 ? "OrderPlaced"
+//                 : status,
+//             timestamp: new Date().toISOString(),
+//           },
+//         },
+//       },
+//     };
+
+//     const blockedStatuses = [
+//       "in-transit",
+//       "out-for-delivery",
+//       "delivered",
+//       "rto",
+//       "failed-delivery",
+//       "lost",
+//       "damaged",
+//     ];
+
+//     if (blockedStatuses.includes(status)) {
+//       return res.status(200).json({
+//         ok: true,
+//         testMode: true,
+//         status,
+//         paymentType,
+//         message: `Your current order status is ${status}. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`,
+//       });
+//     }
+
+//     return res.status(200).json({
+//       ok: true,
+//       testMode: true,
+//       status,
+//       paymentType,
+//       message:
+//         paymentType === "cod"
+//           ? "Your cash on delivery order is cancelled."
+//           : "Your order is cancelled. Your refund is initiated.",
+//       mockOrder,
+//     });
+//   } catch (err) {
+//     return res.status(500).json({
+//       ok: false,
+//       error: err.message,
+//     });
+//   }
+// });
+
 exotelRoutes.get("/:path", async (req, res) => {
   try {
     const flowId = req.path.replace("/", "") ? req.path.replace("/", "") : null;
