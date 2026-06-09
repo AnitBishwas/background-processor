@@ -8,11 +8,7 @@ import {
 const safeArray = (value) => (Array.isArray(value) ? value : []);
 
 const normalize = (v) =>
-  (v || "")
-    .toString()
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_-]+/g, "");
+  (v || "").toString().trim().toLowerCase().replace(/[\s_-]+/g, "");
 
 const formatDate = (date) => {
   if (!date) return null;
@@ -20,79 +16,51 @@ const formatDate = (date) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toDateString();
 };
 
-const getClickPostTracking = (order) => {
-  return order?.tracking || {};
-};
+const getClickPostTracking = (order) => order?.tracking || {};
+const getClickPostData = (order) => order?.tracking?.tracking_data || {};
 
-const getClickPostData = (order) => {
-  return order?.tracking?.tracking_data || {};
-};
+const getLatestDate = (trackingData) =>
+  trackingData?.latest_status?.timestamp ||
+  trackingData?.latest_status?.time ||
+  trackingData?.latest_status?.status_time ||
+  trackingData?.latest_status?.created_at ||
+  trackingData?.latest_status?.updated_at ||
+  null;
 
-const getLatestDate = (trackingData) => {
-  return (
-    trackingData?.latest_status?.timestamp ||
-    trackingData?.latest_status?.time ||
-    trackingData?.latest_status?.status_time ||
-    trackingData?.latest_status?.created_at ||
-    trackingData?.latest_status?.updated_at ||
-    null
+const getEdd = (trackingData) =>
+  trackingData?.courier_partner_edd ||
+  trackingData?.edd ||
+  trackingData?.estimated_delivery_date ||
+  null;
+
+const getClickPostDescription = (order) =>
+  normalize(
+    getClickPostData(order)?.latest_status?.clickpost_status_description
   );
-};
 
-const getEdd = (trackingData) => {
-  return (
-    trackingData?.courier_partner_edd ||
-    trackingData?.edd ||
-    trackingData?.estimated_delivery_date ||
-    null
-  );
-};
-
-const getClickPostDescription = (order) => {
-  const trackingData = getClickPostData(order);
-
-  return normalize(
-    trackingData?.latest_status?.clickpost_status_description
-  );
+const isWithin30Minutes = (order) => {
+  if (!order?.createdAt) return false;
+  const diffMinutes = (Date.now() - new Date(order.createdAt).getTime()) / 60000;
+  return diffMinutes <= 30;
 };
 
 const isOrderCancellable = (order) => {
   const fulfillments = safeArray(order?.fulfillments);
-  const tracking = getClickPostTracking(order);
-  const currentStatus = tracking?.current_status;
+  const currentStatus = getClickPostTracking(order)?.current_status;
   const clickpostDescription = getClickPostDescription(order);
 
-  const cancellableClickPostDescriptions = [
-    "orderplaced",
-    "awbregistered",
-    "pickuppending",
-    "pickupfailed",
-    "outforpickup",
-  ];
+  if (!isWithin30Minutes(order)) return false;
 
-  const nonCancellableStatuses = [
-    "in-transit",
-    "out-for-delivery",
-    "delivered",
-    "rto",
-    "failed-delivery",
-    "lost",
-    "damaged",
-  ];
+  if (fulfillments.length === 0) return true;
 
-  if (nonCancellableStatuses.includes(currentStatus)) {
-    return false;
-  }
-
-  if (fulfillments.length === 0) {
-    return true;
-  }
-
-  if (currentStatus === "packed") {
-    return true;
-  }
-
-  if (cancellableClickPostDescriptions.includes(clickpostDescription)) {
+  if (
+    currentStatus === "packed" ||
+    clickpostDescription === "orderplaced" ||
+    clickpostDescription === "awbregistered" ||
+    clickpostDescription === "pickuppending" ||
+    clickpostDescription === "pickupfailed" ||
+    clickpostDescription === "outforpickup"
+  ) {
     return true;
   }
 
@@ -102,16 +70,10 @@ const isOrderCancellable = (order) => {
 const getOrderStatusByPhone = async (phone) => {
   try {
     const customerId = await getCustomerIdByPhoneNumber(phone);
-
-    if (!customerId) {
-      throw new Error("No order exists for this phone number.");
-    }
+    if (!customerId) throw new Error("No order exists for this phone number.");
 
     const order = await getOrderByCustomerId(customerId);
-
-    if (!order) {
-      throw new Error("No order exists for this phone number.");
-    }
+    if (!order) throw new Error("No order exists for this phone number.");
 
     return mapOrderStatus(order);
   } catch (err) {
@@ -123,16 +85,11 @@ const getOrderStatusByPhone = async (phone) => {
 const getOrderStatusByOrderId = async (orderId) => {
   try {
     const order = await getOrderByOrderName(orderId);
-
-    if (!order) {
-      throw new Error("No order exists for this order id.");
-    }
+    if (!order) throw new Error("No order exists for this order id.");
 
     return mapOrderStatus(order);
   } catch (err) {
-    console.log(
-      "Failed to get order status by order id reason -->" + err.message
-    );
+    console.log("Failed to get order status by order id reason -->" + err.message);
     throw new Error(err.message);
   }
 };
@@ -140,22 +97,14 @@ const getOrderStatusByOrderId = async (orderId) => {
 const getOrderRefundStatusByPhone = async (phone) => {
   try {
     const customerId = await getCustomerIdByPhoneNumber(phone);
-
-    if (!customerId) {
-      throw new Error("No order exists for this phone number.");
-    }
+    if (!customerId) throw new Error("No order exists for this phone number.");
 
     const order = await getOrderByCustomerId(customerId);
-
-    if (!order) {
-      throw new Error("No order exists for this phone number");
-    }
+    if (!order) throw new Error("No order exists for this phone number");
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log(
-      "Failed to get refund status by phone reason -->" + err.message
-    );
+    console.log("Failed to get refund status by phone reason -->" + err.message);
     return err.message;
   }
 };
@@ -163,16 +112,11 @@ const getOrderRefundStatusByPhone = async (phone) => {
 const getOrderRefundStatusByOrderId = async (orderId) => {
   try {
     const order = await getOrderByOrderName(orderId);
-
-    if (!order) {
-      throw new Error("No order exists for this order id.");
-    }
+    if (!order) throw new Error("No order exists for this order id.");
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log(
-      "Failed to get refund status by order id reason --->" + err.message
-    );
+    console.log("Failed to get refund status by order id reason --->" + err.message);
     return err.message;
   }
 };
@@ -180,16 +124,10 @@ const getOrderRefundStatusByOrderId = async (orderId) => {
 const cancelOrderByPhone = async (phone) => {
   try {
     const customerId = await getCustomerIdByPhoneNumber(phone);
-
-    if (!customerId) {
-      throw new Error("No order exists for this phone number.");
-    }
+    if (!customerId) throw new Error("No order exists for this phone number.");
 
     const order = await getOrderByCustomerId(customerId);
-
-    if (!order) {
-      throw new Error("No order exists for this phone number.");
-    }
+    if (!order) throw new Error("No order exists for this phone number.");
 
     return await mapOrderCancellation(order);
   } catch (err) {
@@ -201,10 +139,7 @@ const cancelOrderByPhone = async (phone) => {
 const cancelOrderByOrderId = async (orderId) => {
   try {
     const order = await getOrderByOrderName(orderId);
-
-    if (!order) {
-      throw new Error("No order exists for this order id.");
-    }
+    if (!order) throw new Error("No order exists for this order id.");
 
     return await mapOrderCancellation(order);
   } catch (err) {
@@ -218,12 +153,8 @@ const mapOrderStatus = (order) => {
     const fulfillments = safeArray(order?.fulfillments);
     const tracking = getClickPostTracking(order);
     const trackingData = getClickPostData(order);
-
     const currentStatus = tracking?.current_status;
     const clickpostDescription = getClickPostDescription(order);
-
-    console.log("STATUS AGAINST ORDER =>", currentStatus, tracking);
-    console.log("CLICKPOST DESCRIPTION IN ACTIONS =>", clickpostDescription);
 
     if (order?.cancelledAt) {
       return `Your order was cancelled successfully on ${formatDate(
@@ -253,22 +184,16 @@ Note: Once your order is packed, we will share the tracking details with you on 
 
     if (currentStatus === "delivered") {
       const deliveredDate = formatDate(getLatestDate(trackingData));
-
-      if (deliveredDate) {
-        return `Your order has been delivered to you on ${deliveredDate}.`;
-      }
-
-      return `Your order has been delivered to you.`;
+      return deliveredDate
+        ? `Your order has been delivered to you on ${deliveredDate}.`
+        : `Your order has been delivered to you.`;
     }
 
     if (currentStatus === "rto") {
       const rtoDate = formatDate(getLatestDate(trackingData));
-
-      if (rtoDate) {
-        return `Your order was marked as returned on ${rtoDate}. For prepaid orders, refunds are processed in 2 to 7 business days in original mode of payment.`;
-      }
-
-      return `Your order was marked as returned. For prepaid orders, refunds are processed in 2 to 7 business days in original mode of payment.`;
+      return rtoDate
+        ? `Your order was marked as returned on ${rtoDate}. For prepaid orders, refunds are processed in 2 to 7 business days in original mode of payment.`
+        : `Your order was marked as returned. For prepaid orders, refunds are processed in 2 to 7 business days in original mode of payment.`;
     }
 
     if (currentStatus === "lost") {
@@ -281,12 +206,9 @@ Note: Once your order is packed, we will share the tracking details with you on 
 
     if (currentStatus === "failed-delivery") {
       const attemptDate = formatDate(getLatestDate(trackingData));
-
-      if (attemptDate) {
-        return `Delivery was attempted on ${attemptDate} but was unsuccessful. Delivery will now be reattempted on the next working day.`;
-      }
-
-      return `Delivery was attempted but was unsuccessful. Delivery will now be reattempted on the next working day.`;
+      return attemptDate
+        ? `Delivery was attempted on ${attemptDate} but was unsuccessful. Delivery will now be reattempted on the next working day.`
+        : `Delivery was attempted but was unsuccessful. Delivery will now be reattempted on the next working day.`;
     }
 
     if (currentStatus === "out-for-delivery") {
@@ -295,12 +217,9 @@ Note: Once your order is packed, we will share the tracking details with you on 
 
     if (currentStatus === "in-transit") {
       const edd = formatDate(getEdd(trackingData));
-
-      if (edd) {
-        return `Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`;
-      }
-
-      return `Your order is currently in transit and will be delivered to you soon. Kindly check your WhatsApp or email for the tracking link.`;
+      return edd
+        ? `Your order is shipped and will be delivered to you by ${edd}. Kindly check your WhatsApp or email for the tracking link.`
+        : `Your order is currently in transit and will be delivered to you soon. Kindly check your WhatsApp or email for the tracking link.`;
     }
 
     return `Your order is currently in transit and will be delivered to you soon. Kindly check your WhatsApp or email for the tracking link.`;
@@ -313,10 +232,7 @@ const mapOrderRefundStatus = (order) => {
   try {
     const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
     const tags = safeArray(order?.tags);
-
-    const tracking = getClickPostTracking(order);
-    const currentStatus = tracking?.current_status;
-
+    const currentStatus = getClickPostTracking(order)?.current_status;
     const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
     const isCod = paymentGatewayNames.find(
@@ -341,11 +257,7 @@ const mapOrderRefundStatus = (order) => {
       return `Refund for your latest order of amount ${refundAmount} was initiated successfully and will be credited within 2 to 7 working days in your original mode of payment from the date of initiation.`;
     }
 
-    if (
-      tags.includes("RTO") ||
-      tags.includes("Returned") ||
-      currentStatus === "rto"
-    ) {
+    if (tags.includes("RTO") || tags.includes("Returned") || currentStatus === "rto") {
       return `Refund has not yet been initiated for your latest order of amount ${refundAmount}. After this message, we will help you connect with one of our executives who will assist you with your refund request.`;
     }
 
@@ -363,27 +275,22 @@ const mapOrderRefundStatus = (order) => {
 
     return `Please note, for prepaid orders, it usually takes 2 to 7 working days for the refund to be credited in your source account.`;
   } catch (err) {
-    throw new Error(
-      "Failed to map order refund status reason -->" + err.message
-    );
+    throw new Error("Failed to map order refund status reason -->" + err.message);
   }
 };
 
 const mapOrderCancellation = async (order) => {
   try {
     const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
-    const tracking = getClickPostTracking(order);
-    const currentStatus = tracking?.current_status;
-    const clickpostDescription = getClickPostDescription(order);
-
     const isOrderCancelled = order?.cancelledAt;
 
     const isCod = paymentGatewayNames.find(
       (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
     );
 
-    console.log("CANCEL CURRENT STATUS =>", currentStatus);
-    console.log("CANCEL CLICKPOST DESCRIPTION =>", clickpostDescription);
+    console.log("CANCEL ORDER CREATED AT =>", order?.createdAt);
+    console.log("CANCEL ORDER FULFILLMENTS =>", safeArray(order?.fulfillments).length);
+    console.log("CANCEL ORDER TRACKING =>", getClickPostTracking(order));
 
     if (isOrderCancelled && isCod) {
       return `Your cash on delivery order placed on ${formatDate(
@@ -392,30 +299,31 @@ const mapOrderCancellation = async (order) => {
     }
 
     if (isOrderCancelled && !isCod) {
-      const refundAmount =
-        order?.currentTotalPriceSet?.shopMoney?.amount || null;
+      const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
       return `Your order placed on ${formatDate(
         isOrderCancelled
       )} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
     }
 
+    if (!isWithin30Minutes(order)) {
+      return `Your order cannot be cancelled as the cancellation window of 30 minutes has expired.`;
+    }
+
     if (!isOrderCancellable(order)) {
       const readableStatus =
-        currentStatus || clickpostDescription || "in transit";
+        getClickPostTracking(order)?.current_status ||
+        getClickPostDescription(order) ||
+        "in transit";
 
       return `Your current order status is ${readableStatus}. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
     }
 
     const makeCancelRequest = await cancelOrder(order);
 
-    if (!makeCancelRequest) {
-      return `Failed to cancel your order. Please connect with our executives.`;
-    }
+    console.log("CANCEL ORDER RESPONSE =>", makeCancelRequest);
 
-    if (makeCancelRequest?.success === false) {
-      console.log("CANCEL ORDER ERROR =>", makeCancelRequest?.error);
-
+    if (!makeCancelRequest || makeCancelRequest?.success === false) {
       return `Failed to cancel your order. Please connect with our executives.`;
     }
 
@@ -425,15 +333,13 @@ const mapOrderCancellation = async (order) => {
       )} is cancelled.`;
     }
 
-    const refundAmount =
-      order?.currentTotalPriceSet?.shopMoney?.amount || null;
+    const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
     return `Your order placed on ${formatDate(
       order?.createdAt
     )} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
   } catch (err) {
     console.log("MAP ORDER CANCELLATION ERROR =>", err.message);
-
     return `Failed to cancel your order. Please connect with our executives.`;
   }
 };
@@ -446,4 +352,5 @@ export {
   cancelOrderByPhone,
   cancelOrderByOrderId,
   mapOrderStatus,
+  mapOrderCancellation,
 };
