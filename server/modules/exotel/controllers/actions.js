@@ -307,7 +307,7 @@ const mapOrderCancellation = async (order) => {
     }
 
     if (!isWithin30Minutes(order)) {
-      return `Your order cannot be cancelled as the cancellation window of 30 minutes has expired.`;
+      return `Your order is packed and will be shipped in the next 24 to 48 hours. Once shipped, tracking details will be shared with you on WhatsApp and email.`;
     }
 
     if (!isOrderCancellable(order)) {
