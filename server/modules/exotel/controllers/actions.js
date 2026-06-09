@@ -6,8 +6,13 @@ import {
 } from "./shopify.js";
 
 const safeArray = (value) => (Array.isArray(value) ? value : []);
+
 const normalize = (v) =>
-  (v || "").toString().trim().toLowerCase().replace(/[\s_-]+/g, "");
+  (v || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
 
 const formatDate = (date) => {
   if (!date) return null;
@@ -41,6 +46,57 @@ const getEdd = (trackingData) => {
     trackingData?.estimated_delivery_date ||
     null
   );
+};
+
+const getClickPostDescription = (order) => {
+  const trackingData = getClickPostData(order);
+
+  return normalize(
+    trackingData?.latest_status?.clickpost_status_description
+  );
+};
+
+const isOrderCancellable = (order) => {
+  const fulfillments = safeArray(order?.fulfillments);
+  const tracking = getClickPostTracking(order);
+  const currentStatus = tracking?.current_status;
+  const clickpostDescription = getClickPostDescription(order);
+
+  const cancellableClickPostDescriptions = [
+    "orderplaced",
+    "awbregistered",
+    "pickuppending",
+    "pickupfailed",
+    "outforpickup",
+  ];
+
+  const nonCancellableStatuses = [
+    "in-transit",
+    "out-for-delivery",
+    "delivered",
+    "rto",
+    "failed-delivery",
+    "lost",
+    "damaged",
+  ];
+
+  if (nonCancellableStatuses.includes(currentStatus)) {
+    return false;
+  }
+
+  if (fulfillments.length === 0) {
+    return true;
+  }
+
+  if (currentStatus === "packed") {
+    return true;
+  }
+
+  if (cancellableClickPostDescriptions.includes(clickpostDescription)) {
+    return true;
+  }
+
+  return false;
 };
 
 const getOrderStatusByPhone = async (phone) => {
@@ -152,6 +208,7 @@ const cancelOrderByOrderId = async (orderId) => {
 
     return await mapOrderCancellation(order);
   } catch (err) {
+    console.log("Failed to cancel order by order id reason -->" + err.message);
     return err.message;
   }
 };
@@ -163,10 +220,7 @@ const mapOrderStatus = (order) => {
     const trackingData = getClickPostData(order);
 
     const currentStatus = tracking?.current_status;
-
-    const clickpostDescription = normalize(
-      trackingData?.latest_status?.clickpost_status_description
-    );
+    const clickpostDescription = getClickPostDescription(order);
 
     console.log("STATUS AGAINST ORDER =>", currentStatus, tracking);
     console.log("CLICKPOST DESCRIPTION IN ACTIONS =>", clickpostDescription);
@@ -317,14 +371,19 @@ const mapOrderRefundStatus = (order) => {
 
 const mapOrderCancellation = async (order) => {
   try {
-    const fulfillments = safeArray(order?.fulfillments);
     const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
+    const tracking = getClickPostTracking(order);
+    const currentStatus = tracking?.current_status;
+    const clickpostDescription = getClickPostDescription(order);
 
     const isOrderCancelled = order?.cancelledAt;
 
     const isCod = paymentGatewayNames.find(
       (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
     );
+
+    console.log("CANCEL CURRENT STATUS =>", currentStatus);
+    console.log("CANCEL CLICKPOST DESCRIPTION =>", clickpostDescription);
 
     if (isOrderCancelled && isCod) {
       return `Your cash on delivery order placed on ${formatDate(
@@ -341,30 +400,41 @@ const mapOrderCancellation = async (order) => {
       )} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
     }
 
-    if (fulfillments.length === 0) {
-      const makeCancelRequest = await cancelOrder(order);
+    if (!isOrderCancellable(order)) {
+      const readableStatus =
+        currentStatus || clickpostDescription || "in transit";
 
-      if (!makeCancelRequest) {
-        return `Failed to cancel your order. Please connect with our executives.`;
-      }
-
-      if (isCod) {
-        return `Your cash on delivery order placed on ${formatDate(
-          order?.createdAt
-        )} is cancelled.`;
-      }
-
-      const refundAmount =
-        order?.currentTotalPriceSet?.shopMoney?.amount || null;
-
-      return `Your order placed on ${formatDate(
-        order?.createdAt
-      )} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
+      return `Your current order status is ${readableStatus}. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
     }
 
-    return `Your current order status is in transit. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+    const makeCancelRequest = await cancelOrder(order);
+
+    if (!makeCancelRequest) {
+      return `Failed to cancel your order. Please connect with our executives.`;
+    }
+
+    if (makeCancelRequest?.success === false) {
+      console.log("CANCEL ORDER ERROR =>", makeCancelRequest?.error);
+
+      return `Failed to cancel your order. Please connect with our executives.`;
+    }
+
+    if (isCod) {
+      return `Your cash on delivery order placed on ${formatDate(
+        order?.createdAt
+      )} is cancelled.`;
+    }
+
+    const refundAmount =
+      order?.currentTotalPriceSet?.shopMoney?.amount || null;
+
+    return `Your order placed on ${formatDate(
+      order?.createdAt
+    )} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
   } catch (err) {
-    throw new Error("Failed to cancel order");
+    console.log("MAP ORDER CANCELLATION ERROR =>", err.message);
+
+    return `Failed to cancel your order. Please connect with our executives.`;
   }
 };
 
