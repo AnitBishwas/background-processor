@@ -324,7 +324,9 @@ const mapOrderCancellation = async (order) => {
     console.log("CANCEL ORDER RESPONSE =>", makeCancelRequest);
 
     if (!makeCancelRequest || makeCancelRequest?.success === false) {
-      return `Failed to cancel your order. Please connect with our executives.`;
+      return `Failed to cancel your order. Reason: ${
+        makeCancelRequest?.error || "Shopify cancellation failed"
+      }`;
     }
 
     if (isCod) {
