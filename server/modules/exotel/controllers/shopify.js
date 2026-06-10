@@ -11,7 +11,7 @@ const safeArray = (value) => (Array.isArray(value) ? value : []);
 const normalisePhoneNumber = (phone) => {
   if (!phone) return null;
 
-  let digits = phone.replace(/\D/g, "");
+  let digits = phone.toString().replace(/\D/g, "");
 
   if (digits.length === 11 && digits.startsWith("0")) {
     digits = digits.substring(1);
@@ -39,6 +39,48 @@ const isWithinCancellationWindow = (order) => {
 
   return diffMinutes <= 30;
 };
+
+const orderNodeFields = `
+  id
+  name
+  phone
+  createdAt
+  returnStatus
+  cancelledAt
+  tags
+  confirmed
+  paymentGatewayNames
+  shippingAddress {
+    phone
+  }
+  billingAddress {
+    phone
+  }
+  customer {
+    phone
+    defaultPhoneNumber {
+      phoneNumber
+    }
+  }
+  currentTotalPriceSet {
+    shopMoney {
+      amount
+    }
+  }
+  refunds(first: 50) {
+    createdAt
+    totalRefunded {
+      amount
+    }
+  }
+  fulfillments(first: 50) {
+    trackingInfo {
+      number
+      company
+      url
+    }
+  }
+`;
 
 const getCustomerIdByPhoneNumber = async (phone) => {
   try {
@@ -133,37 +175,7 @@ const getOrderByCustomerId = async (customerId) => {
         orders(first: 1, query: "customer_id:${customerId}", reverse: true) {
           edges {
             node {
-              id
-              name
-              createdAt
-              returnStatus
-              cancelledAt
-              tags
-              confirmed
-              paymentGatewayNames
-              customer {
-                defaultPhoneNumber {
-                  phoneNumber
-                }
-              }
-              currentTotalPriceSet {
-                shopMoney {
-                  amount
-                }
-              }
-              refunds(first: 50) {
-                createdAt
-                totalRefunded {
-                  amount
-                }
-              }
-              fulfillments(first: 50) {
-                trackingInfo {
-                  number
-                  company
-                  url
-                }
-              }
+              ${orderNodeFields}
             }
           }
         }
@@ -200,37 +212,7 @@ const getOrderByOrderName = async (orderName) => {
         orders(first: 1, query: "name:${orderName}") {
           edges {
             node {
-              id
-              name
-              createdAt
-              returnStatus
-              cancelledAt
-              tags
-              confirmed
-              paymentGatewayNames
-              customer {
-                defaultPhoneNumber {
-                  phoneNumber
-                }
-              }
-              currentTotalPriceSet {
-                shopMoney {
-                  amount
-                }
-              }
-              refunds(first: 50) {
-                createdAt
-                totalRefunded {
-                  amount
-                }
-              }
-              fulfillments(first: 50) {
-                trackingInfo {
-                  number
-                  company
-                  url
-                }
-              }
+              ${orderNodeFields}
             }
           }
         }
@@ -334,7 +316,6 @@ const checkOrderCancellationEligibility = async (order) => {
       };
     }
 
-    // Unfulfilled + no tracking = cancellable
     if (fulfillments.length === 0) {
       return {
         allowed: true,
@@ -343,7 +324,6 @@ const checkOrderCancellationEligibility = async (order) => {
       };
     }
 
-    // Packed / pre-shipped = cancellable within 30 min
     if (currentStatus === "packed" || currentStatus === "placed") {
       return {
         allowed: true,
@@ -359,9 +339,73 @@ const checkOrderCancellationEligibility = async (order) => {
     };
   } catch (err) {
     throw new Error(
-      "Failed to check order cancellation eligibility reason --> " +
-        err.message
+      "Failed to check order cancellation eligibility reason --> " + err.message
     );
+  }
+};
+
+const addOrderTags = async (orderId, tags = []) => {
+  try {
+    if (!orderId || !tags.length) {
+      return {
+        success: false,
+        error: "Order id or tags missing",
+      };
+    }
+
+    const query = `
+      mutation TagsAdd($id: ID!, $tags: [String!]!) {
+        tagsAdd(id: $id, tags: $tags) {
+          node {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      id: orderId,
+      tags,
+    };
+
+    console.log("ADD ORDER TAG VARIABLES =>", JSON.stringify(variables, null, 2));
+
+    const { client } = await clientProvider.offline.graphqlClient({ shop });
+    const { data, errors } = await client.request(query, { variables });
+
+    console.log("ADD ORDER TAG DATA =>", JSON.stringify(data, null, 2));
+    console.log("ADD ORDER TAG ERRORS =>", JSON.stringify(errors, null, 2));
+
+    const userErrors = data?.tagsAdd?.userErrors || [];
+
+    if (errors?.length) {
+      return {
+        success: false,
+        error: errors.map((e) => e.message).join(", "),
+      };
+    }
+
+    if (userErrors.length) {
+      return {
+        success: false,
+        error: userErrors.map((e) => e.message).join(", "),
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    console.log("ADD ORDER TAG FAILED =>", err.message);
+
+    return {
+      success: false,
+      error: err.message,
+    };
   }
 };
 
@@ -401,8 +445,8 @@ const cancelOrder = async (order) => {
       }
     `;
 
-    const paymentGatewayNames = safeArray(order?.paymentGatewayNames).map((el) =>
-      String(el || "").toLowerCase()
+    const paymentGatewayNames = safeArray(order?.paymentGatewayNames).map(
+      (el) => String(el || "").toLowerCase()
     );
 
     const isCod = paymentGatewayNames.some(
@@ -455,9 +499,14 @@ const cancelOrder = async (order) => {
       };
     }
 
+    const tagResponse = await addOrderTags(order.id, ["Ivr_cancel"]);
+
+    console.log("IVR CANCEL TAG RESPONSE =>", tagResponse);
+
     return {
       success: true,
       job: data?.orderCancel?.job || null,
+      tagResponse,
     };
   } catch (err) {
     console.log("SHOPIFY CANCEL FAILED =>", err.message);
@@ -846,6 +895,7 @@ export {
   getOrderByCustomerId,
   getOrderByOrderName,
   cancelOrder,
+  addOrderTags,
   getLastFiverOrdersByCustomerId,
   getOrderTrackingController,
 };
