@@ -92,14 +92,9 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
   return matched;
 };
 
-const isOrderCancellable = (order) => {
-  const fulfillments = safeArray(order?.fulfillments);
+const isPackedCancellationStatus = (order) => {
   const currentStatus = getClickPostTracking(order)?.current_status;
   const clickpostDescription = getClickPostDescription(order);
-
-  if (!isWithin30Minutes(order)) return false;
-
-  if (fulfillments.length === 0) return true;
 
   return (
     currentStatus === "packed" ||
@@ -109,6 +104,16 @@ const isOrderCancellable = (order) => {
     clickpostDescription === "pickupfailed" ||
     clickpostDescription === "outforpickup"
   );
+};
+
+const isOrderCancellable = (order) => {
+  const fulfillments = safeArray(order?.fulfillments);
+
+  if (!isWithin30Minutes(order)) return false;
+  if (fulfillments.length > 0) return false;
+  if (isPackedCancellationStatus(order)) return false;
+
+  return true;
 };
 
 const getOrderStatusByPhone = async (phone) => {
@@ -336,6 +341,50 @@ const mapOrderRefundStatus = (order) => {
   }
 };
 
+const getCancellationStatusMessage = (order) => {
+  const fulfillments = safeArray(order?.fulfillments);
+  const tracking = getClickPostTracking(order);
+  const currentStatus = tracking?.current_status;
+
+  if (isPackedCancellationStatus(order)) {
+    return `Your order cannot be cancelled as it is already packed and will be shipped in the next 24 to 48 hours. You can refuse the delivery upon arrival.`;
+  }
+
+  if (currentStatus === "delivered") {
+    return `Your current order status is delivered. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  if (currentStatus === "rto") {
+    return `Your current order status is returned. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  if (currentStatus === "lost") {
+    return `Your current order status is lost. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  if (currentStatus === "damaged") {
+    return `Your current order status is damaged. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  if (currentStatus === "failed-delivery") {
+    return `Your current order status is undelivered due to failed delivery. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  if (currentStatus === "out-for-delivery") {
+    return `Your current order status is out for delivery. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  if (currentStatus === "in-transit") {
+    return `Your current order status is in transit. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  if (fulfillments.length > 0 || !tracking?.success) {
+    return `Your current order status is shipped. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+  }
+
+  return `Your order cannot be cancelled as we are unable to fetch your order details at the moment. You can choose to connect with our support team for futher assistance.`;
+};
+
 const mapOrderCancellation = async (order) => {
   try {
     const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
@@ -345,28 +394,20 @@ const mapOrderCancellation = async (order) => {
       (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
     );
 
+    const orderDate = formatDate(order?.createdAt);
+    const refundAmount =
+      order?.currentTotalPriceSet?.shopMoney?.amount || null;
+
     if (isOrderCancelled && isCod) {
-      return `Your cash on delivery order placed on ${formatDate(isOrderCancelled)} is already cancelled.`;
+      return `Your cash on delivery order placed on ${orderDate} is already cancelled.`;
     }
 
     if (isOrderCancelled && !isCod) {
-      const refundAmount =
-        order?.currentTotalPriceSet?.shopMoney?.amount || null;
-
-      return `Your order placed on ${formatDate(isOrderCancelled)} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
-    }
-
-    if (!isWithin30Minutes(order)) {
-      return `Your order cannot be cancelled as it is already packed and will be shipped in the next 24 to 48 hours. You can refuse the delivery upon arrival.`;
+      return `Your order placed on ${orderDate} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 5 to 7 working days from the date of cancellation.`;
     }
 
     if (!isOrderCancellable(order)) {
-      const readableStatus =
-        getClickPostTracking(order)?.current_status ||
-        getClickPostDescription(order) ||
-        "in transit";
-
-      return `Your current order status is ${readableStatus}. Hence, it cannot be cancelled as we allow cancellation only before your order gets packed.`;
+      return getCancellationStatusMessage(order);
     }
 
     const makeCancelRequest = await cancelOrder(order);
@@ -380,12 +421,10 @@ const mapOrderCancellation = async (order) => {
     }
 
     if (isCod) {
-      return `Your cash on delivery order placed on ${formatDate(order?.createdAt)} is cancelled.`;
+      return `Your cash on delivery order placed on ${orderDate} is cancelled successfully.`;
     }
 
-    const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
-
-    return `Your order placed on ${formatDate(order?.createdAt)} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
+    return `Your order placed on ${orderDate} is cancelled successfully. Your refund of amount ${refundAmount} is initiated and will be credited within 5-7 working days in your account from which the transaction was made.`;
   } catch (err) {
     console.log("MAP ORDER CANCELLATION ERROR =>", err.message);
     return `Failed to cancel your order. Please connect with our executives.`;
