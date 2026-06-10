@@ -80,9 +80,10 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     order?.billingAddress?.phone,
   ];
 
-  const matched = orderPhones.some(
-    (phone) => normalizePhone(phone) === caller
-  );
+  const matched = orderPhones.some((phone) => {
+    const orderPhone = normalizePhone(phone);
+    return orderPhone && orderPhone === caller;
+  });
 
   console.log("CALLER PHONE =>", caller);
   console.log("ORDER PHONES =>", orderPhones);
