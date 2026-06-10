@@ -35,6 +35,8 @@ const normalisePhoneForMatch = (phone) => {
 const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
   const caller = normalisePhoneForMatch(callerPhone);
 
+  if (!caller) return false;
+
   const orderPhones = [
     order?.phone,
     order?.customer?.phone,
@@ -43,9 +45,10 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     order?.billingAddress?.phone,
   ];
 
-  const matched = orderPhones.some(
-    (phone) => normalisePhoneForMatch(phone) === caller
-  );
+  const matched = orderPhones.some((phone) => {
+    const orderPhone = normalisePhoneForMatch(phone);
+    return orderPhone && orderPhone === caller;
+  });
 
   console.log("CALLER PHONE NORMALIZED =>", caller);
   console.log("ORDER PHONES =>", orderPhones);
@@ -695,22 +698,24 @@ const cancelOrderByPhone = async (phone) => {
     const customerId = await getCustomerIdByPhoneNumber(phone);
 
     if (!customerId) {
-      return {
-        status: "no_customer_found_phone",
-      };
+      return { status: "no_customer_found_phone" };
     }
 
     const order = await getOrderByCustomerId(customerId);
 
     if (!order) {
+      return { status: "no_order_against_phone" };
+    }
+
+    if (!isCallerPhoneMatchedWithOrder(order, phone)) {
       return {
-        status: "no_order_against_phone",
+        status: "order_phone_mismatch",
+        order,
+        statusText: "phone_mismatch",
       };
     }
 
     const eligibility = await checkOrderCancellationEligibility(order);
-
-    console.log("CANCEL ELIGIBILITY PHONE =>", eligibility);
 
     if (eligibility.reason === "already_cancelled") {
       return {
@@ -751,19 +756,24 @@ const cancelOrderByPhone = async (phone) => {
   }
 };
 
-const cancelOrderByOrderName = async (orderName, callerPhone = null) => {
+const cancelOrderByOrderName = async (orderName, callerPhone) => {
   try {
     if (!orderName) throw new Error("Order id not provided");
+
+    if (!callerPhone) {
+      return {
+        status: "order_phone_mismatch",
+        statusText: "caller_phone_missing",
+      };
+    }
 
     const order = await getOrderByOrderName(orderName);
 
     if (!order) {
-      return {
-        status: "no_order_against_orderId",
-      };
+      return { status: "no_order_against_orderId" };
     }
 
-    if (callerPhone && !isCallerPhoneMatchedWithOrder(order, callerPhone)) {
+    if (!isCallerPhoneMatchedWithOrder(order, callerPhone)) {
       return {
         status: "order_phone_mismatch",
         order,
@@ -772,8 +782,6 @@ const cancelOrderByOrderName = async (orderName, callerPhone = null) => {
     }
 
     const eligibility = await checkOrderCancellationEligibility(order);
-
-    console.log("CANCEL ELIGIBILITY ORDER =>", eligibility);
 
     if (eligibility.reason === "already_cancelled") {
       return {
