@@ -13,19 +13,45 @@ const normalisePhoneNumber = (phone) => {
 
   let digits = phone.toString().replace(/\D/g, "");
 
-  if (digits.length === 11 && digits.startsWith("0")) {
-    digits = digits.substring(1);
-  }
-
-  if (digits.length === 12 && digits.startsWith("91")) {
-    digits = digits.substring(2);
-  }
-
-  if (digits.length !== 10) {
-    return null;
-  }
+  if (digits.length === 11 && digits.startsWith("0")) digits = digits.substring(1);
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.substring(2);
+  if (digits.length !== 10) return null;
 
   return `+91${digits}`;
+};
+
+const normalisePhoneForMatch = (phone) => {
+  if (!phone) return null;
+
+  let digits = phone.toString().replace(/\D/g, "");
+
+  if (digits.length === 11 && digits.startsWith("0")) digits = digits.substring(1);
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.substring(2);
+  if (digits.length !== 10) return null;
+
+  return digits;
+};
+
+const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
+  const caller = normalisePhoneForMatch(callerPhone);
+
+  const orderPhones = [
+    order?.phone,
+    order?.customer?.phone,
+    order?.customer?.defaultPhoneNumber?.phoneNumber,
+    order?.shippingAddress?.phone,
+    order?.billingAddress?.phone,
+  ];
+
+  const matched = orderPhones.some(
+    (phone) => normalisePhoneForMatch(phone) === caller
+  );
+
+  console.log("CALLER PHONE NORMALIZED =>", caller);
+  console.log("ORDER PHONES =>", orderPhones);
+  console.log("PHONE MATCHED =>", matched);
+
+  return matched;
 };
 
 const isWithinCancellationWindow = (order) => {
@@ -86,9 +112,7 @@ const getCustomerIdByPhoneNumber = async (phone) => {
   try {
     phone = normalisePhoneNumber(phone);
 
-    if (!phone) {
-      throw new Error("Invalid phone number");
-    }
+    if (!phone) throw new Error("Invalid phone number");
 
     const query = `
       query($identifier: CustomerIdentifierInput!) {
@@ -109,9 +133,7 @@ const getCustomerIdByPhoneNumber = async (phone) => {
 
     const response = data?.customer?.id || null;
 
-    if (!response) {
-      throw new Error("No customer found");
-    }
+    if (!response) throw new Error("No customer found");
 
     return response.replace("gid://shopify/Customer/", "");
   } catch (err) {
@@ -125,22 +147,16 @@ const getOrderTrackingInfo = async (order) => {
   try {
     const fulfillments = safeArray(order?.fulfillments);
 
-    if (!fulfillments.length) {
-      return null;
-    }
+    if (!fulfillments.length) return null;
 
     const latestFulfillment = fulfillments[fulfillments.length - 1];
     const trackingInfo = latestFulfillment?.trackingInfo?.[0];
 
-    if (!trackingInfo) {
-      return null;
-    }
+    if (!trackingInfo) return null;
 
     const awb = trackingInfo?.number;
 
-    if (!awb) {
-      return null;
-    }
+    if (!awb) return null;
 
     const clickpostResponse = await getTrackingStatusFromClickPost({
       awb,
@@ -187,9 +203,7 @@ const getOrderByCustomerId = async (customerId) => {
 
     let order = data?.orders?.edges?.[0];
 
-    if (!order) {
-      return null;
-    }
+    if (!order) return null;
 
     order = order.node;
 
@@ -201,9 +215,7 @@ const getOrderByCustomerId = async (customerId) => {
 
 const getOrderByOrderName = async (orderName) => {
   try {
-    if (!orderName.includes("#")) {
-      orderName = `#${orderName}`;
-    }
+    if (!orderName.includes("#")) orderName = `#${orderName}`;
 
     console.log("ORDER STATUS BY ORDER ID =>", orderName);
 
@@ -224,9 +236,7 @@ const getOrderByOrderName = async (orderName) => {
 
     let order = data?.orders?.edges?.[0];
 
-    if (!order) {
-      return null;
-    }
+    if (!order) return null;
 
     order = order.node;
 
@@ -244,17 +254,9 @@ const mapOrderStatus = async (order) => {
   try {
     const orderTags = safeArray(order?.tags).map((el) => el.toLowerCase());
 
-    if (orderTags.includes("refund_credited")) {
-      return "refund_successfull";
-    }
-
-    if (orderTags.includes("refund_initiated")) {
-      return "refund_initiated";
-    }
-
-    if (order?.cancelledAt) {
-      return "cancelled";
-    }
+    if (orderTags.includes("refund_credited")) return "refund_successfull";
+    if (orderTags.includes("refund_initiated")) return "refund_initiated";
+    if (order?.cancelledAt) return "cancelled";
 
     const tracking = order?.tracking || null;
 
@@ -266,25 +268,13 @@ const mapOrderStatus = async (order) => {
       return "returned";
     }
 
-    if (orderTags.includes("delivered")) {
-      return "delivered";
-    }
+    if (orderTags.includes("delivered")) return "delivered";
+    if (orderTags.includes("undelivered")) return "attempted_delivery";
+    if (orderTags.includes("in-transit")) return "in-transit";
 
-    if (orderTags.includes("undelivered")) {
-      return "attempted_delivery";
-    }
+    if (safeArray(order?.fulfillments).length > 0) return "packed";
 
-    if (orderTags.includes("in-transit")) {
-      return "in-transit";
-    }
-
-    if (safeArray(order?.fulfillments).length > 0) {
-      return "packed";
-    }
-
-    if (order?.confirmed) {
-      return "placed";
-    }
+    if (order?.confirmed) return "placed";
 
     return null;
   } catch (err) {
@@ -500,7 +490,6 @@ const cancelOrder = async (order) => {
     }
 
     const tagResponse = await addOrderTags(order.id, ["Ivr_cancel"]);
-
     console.log("IVR CANCEL TAG RESPONSE =>", tagResponse);
 
     return {
@@ -520,9 +509,7 @@ const cancelOrder = async (order) => {
 
 const getOrderStatusByPhoneNumber = async (phone) => {
   try {
-    if (!phone) {
-      throw new Error("Phone number not provided");
-    }
+    if (!phone) throw new Error("Phone number not provided");
 
     const customerId = await getCustomerIdByPhoneNumber(phone);
 
@@ -555,9 +542,7 @@ const getOrderStatusByPhoneNumber = async (phone) => {
 
 const getOrderStatusByName = async (orderName) => {
   try {
-    if (!orderName) {
-      throw new Error("Order Id not provided");
-    }
+    if (!orderName) throw new Error("Order Id not provided");
 
     const order = await getOrderByOrderName(orderName);
 
@@ -639,9 +624,7 @@ const getOrderRefundStatusByOrderName = async (orderName) => {
 
 const getOrderRefundStatusByPhone = async (phone) => {
   try {
-    if (!phone) {
-      throw new Error("Phone number not provided");
-    }
+    if (!phone) throw new Error("Phone number not provided");
 
     const customerId = await getCustomerIdByPhoneNumber(phone);
 
@@ -707,9 +690,7 @@ const getOrderRefundStatusByPhone = async (phone) => {
 
 const cancelOrderByPhone = async (phone) => {
   try {
-    if (!phone) {
-      throw new Error("Phone number not provided");
-    }
+    if (!phone) throw new Error("Phone number not provided");
 
     const customerId = await getCustomerIdByPhoneNumber(phone);
 
@@ -770,17 +751,23 @@ const cancelOrderByPhone = async (phone) => {
   }
 };
 
-const cancelOrderByOrderName = async (orderName) => {
+const cancelOrderByOrderName = async (orderName, callerPhone = null) => {
   try {
-    if (!orderName) {
-      throw new Error("Order id not provided");
-    }
+    if (!orderName) throw new Error("Order id not provided");
 
     const order = await getOrderByOrderName(orderName);
 
     if (!order) {
       return {
         status: "no_order_against_orderId",
+      };
+    }
+
+    if (callerPhone && !isCallerPhoneMatchedWithOrder(order, callerPhone)) {
+      return {
+        status: "order_phone_mismatch",
+        order,
+        statusText: "phone_mismatch",
       };
     }
 
@@ -800,7 +787,10 @@ const cancelOrderByOrderName = async (orderName) => {
       return {
         status: "order_in_process",
         order,
-        statusText: eligibility.status,
+        statusText:
+          eligibility.reason === "more_than_30_minutes"
+            ? "more_than_30_minutes"
+            : eligibility.status,
         reason: eligibility.reason,
       };
     }
