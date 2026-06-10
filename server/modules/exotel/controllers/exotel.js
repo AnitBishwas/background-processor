@@ -104,7 +104,7 @@ const mapActions = async (action, phone, digits) => {
         data["text"] = await cancelOrderByPhone(phone);
         break;
       case "order_cancel_id":
-        data["text"] = await cancelOrderByOrderId(digits);
+        data["text"] = await cancelOrderByOrderId(digits, phone);
         break;
       case "store_locator":
         data["whatsappLabel"] = "store_locator";

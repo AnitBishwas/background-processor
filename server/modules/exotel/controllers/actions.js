@@ -8,7 +8,11 @@ import {
 const safeArray = (value) => (Array.isArray(value) ? value : []);
 
 const normalize = (v) =>
-  (v || "").toString().trim().toLowerCase().replace(/[\s_-]+/g, "");
+  (v || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
 
 const formatDate = (date) => {
   if (!date) return null;
@@ -40,8 +44,42 @@ const getClickPostDescription = (order) =>
 
 const isWithin30Minutes = (order) => {
   if (!order?.createdAt) return false;
-  const diffMinutes = (Date.now() - new Date(order.createdAt).getTime()) / 60000;
+  const diffMinutes =
+    (Date.now() - new Date(order.createdAt).getTime()) / 60000;
   return diffMinutes <= 30;
+};
+
+
+const normalizePhone = (phone) => {
+  if (!phone) return null;
+  let digits = phone.toString().replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  if (digits.length === 12 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+  if (digits.length !== 10) return null;
+  return digits;
+};
+
+const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
+  const caller = normalizePhone(callerPhone);
+  const possibleOrderPhones = [
+    order?.phone,
+    order?.customer?.phone,
+    order?.customer?.defaultPhoneNumber?.phoneNumber,
+    order?.shippingAddress?.phone,
+    order?.billingAddress?.phone,
+  ];
+
+  const matched = possibleOrderPhones.some(
+    (phone) => normalizePhone(phone) === caller
+  );
+  console.log("CALLER PHONE =>", caller);
+  console.log("ORDER PHONES =>", possibleOrderPhones);
+  console.log("PHONE MATCHED =>", matched);
+  return matched;
 };
 
 const isOrderCancellable = (order) => {
@@ -89,7 +127,9 @@ const getOrderStatusByOrderId = async (orderId) => {
 
     return mapOrderStatus(order);
   } catch (err) {
-    console.log("Failed to get order status by order id reason -->" + err.message);
+    console.log(
+      "Failed to get order status by order id reason -->" + err.message
+    );
     throw new Error(err.message);
   }
 };
@@ -104,7 +144,9 @@ const getOrderRefundStatusByPhone = async (phone) => {
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log("Failed to get refund status by phone reason -->" + err.message);
+    console.log(
+      "Failed to get refund status by phone reason -->" + err.message
+    );
     return err.message;
   }
 };
@@ -116,7 +158,9 @@ const getOrderRefundStatusByOrderId = async (orderId) => {
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log("Failed to get refund status by order id reason --->" + err.message);
+    console.log(
+      "Failed to get refund status by order id reason --->" + err.message
+    );
     return err.message;
   }
 };
@@ -136,11 +180,15 @@ const cancelOrderByPhone = async (phone) => {
   }
 };
 
-const cancelOrderByOrderId = async (orderId) => {
+const cancelOrderByOrderId = async (orderId, callerPhone) => {
   try {
     const order = await getOrderByOrderName(orderId);
-    if (!order) throw new Error("No order exists for this order id.");
-
+    if (!order) {
+      throw new Error("No order exists for this order id.");
+    }
+    if (!isCallerPhoneMatchedWithOrder(order, callerPhone)) {
+      return `This order cannot be cancelled as it is not linked to your registered mobile number. Please enter the Order ID associated with this number`;
+    }
     return await mapOrderCancellation(order);
   } catch (err) {
     console.log("Failed to cancel order by order id reason -->" + err.message);
@@ -257,7 +305,11 @@ const mapOrderRefundStatus = (order) => {
       return `Refund for your latest order of amount ${refundAmount} was initiated successfully and will be credited within 2 to 7 working days in your original mode of payment from the date of initiation.`;
     }
 
-    if (tags.includes("RTO") || tags.includes("Returned") || currentStatus === "rto") {
+    if (
+      tags.includes("RTO") ||
+      tags.includes("Returned") ||
+      currentStatus === "rto"
+    ) {
       return `Refund has not yet been initiated for your latest order of amount ${refundAmount}. After this message, we will help you connect with one of our executives who will assist you with your refund request.`;
     }
 
@@ -275,7 +327,9 @@ const mapOrderRefundStatus = (order) => {
 
     return `Please note, for prepaid orders, it usually takes 2 to 7 working days for the refund to be credited in your source account.`;
   } catch (err) {
-    throw new Error("Failed to map order refund status reason -->" + err.message);
+    throw new Error(
+      "Failed to map order refund status reason -->" + err.message
+    );
   }
 };
 
@@ -289,7 +343,10 @@ const mapOrderCancellation = async (order) => {
     );
 
     console.log("CANCEL ORDER CREATED AT =>", order?.createdAt);
-    console.log("CANCEL ORDER FULFILLMENTS =>", safeArray(order?.fulfillments).length);
+    console.log(
+      "CANCEL ORDER FULFILLMENTS =>",
+      safeArray(order?.fulfillments).length
+    );
     console.log("CANCEL ORDER TRACKING =>", getClickPostTracking(order));
 
     if (isOrderCancelled && isCod) {
@@ -299,7 +356,8 @@ const mapOrderCancellation = async (order) => {
     }
 
     if (isOrderCancelled && !isCod) {
-      const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
+      const refundAmount =
+        order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
       return `Your order placed on ${formatDate(
         isOrderCancelled
