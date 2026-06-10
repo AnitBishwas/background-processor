@@ -14,6 +14,24 @@ const normalize = (v) =>
     .toLowerCase()
     .replace(/[\s_-]+/g, "");
 
+const normalizePhone = (phone) => {
+  if (!phone) return null;
+
+  let digits = phone.toString().replace(/\D/g, "");
+
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.length !== 10) return null;
+
+  return digits;
+};
+
 const formatDate = (date) => {
   if (!date) return null;
   const parsed = new Date(date);
@@ -38,34 +56,23 @@ const getEdd = (trackingData) =>
   null;
 
 const getClickPostDescription = (order) =>
-  normalize(
-    getClickPostData(order)?.latest_status?.clickpost_status_description
-  );
+  normalize(getClickPostData(order)?.latest_status?.clickpost_status_description);
 
 const isWithin30Minutes = (order) => {
   if (!order?.createdAt) return false;
+
   const diffMinutes =
     (Date.now() - new Date(order.createdAt).getTime()) / 60000;
+
   return diffMinutes <= 30;
-};
-
-
-const normalizePhone = (phone) => {
-  if (!phone) return null;
-  let digits = phone.toString().replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("0")) {
-    digits = digits.slice(1);
-  }
-  if (digits.length === 12 && digits.startsWith("91")) {
-    digits = digits.slice(2);
-  }
-  if (digits.length !== 10) return null;
-  return digits;
 };
 
 const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
   const caller = normalizePhone(callerPhone);
-  const possibleOrderPhones = [
+
+  if (!caller) return false;
+
+  const orderPhones = [
     order?.phone,
     order?.customer?.phone,
     order?.customer?.defaultPhoneNumber?.phoneNumber,
@@ -73,12 +80,14 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     order?.billingAddress?.phone,
   ];
 
-  const matched = possibleOrderPhones.some(
+  const matched = orderPhones.some(
     (phone) => normalizePhone(phone) === caller
   );
+
   console.log("CALLER PHONE =>", caller);
-  console.log("ORDER PHONES =>", possibleOrderPhones);
+  console.log("ORDER PHONES =>", orderPhones);
   console.log("PHONE MATCHED =>", matched);
+
   return matched;
 };
 
@@ -91,18 +100,14 @@ const isOrderCancellable = (order) => {
 
   if (fulfillments.length === 0) return true;
 
-  if (
+  return (
     currentStatus === "packed" ||
     clickpostDescription === "orderplaced" ||
     clickpostDescription === "awbregistered" ||
     clickpostDescription === "pickuppending" ||
     clickpostDescription === "pickupfailed" ||
     clickpostDescription === "outforpickup"
-  ) {
-    return true;
-  }
-
-  return false;
+  );
 };
 
 const getOrderStatusByPhone = async (phone) => {
@@ -127,9 +132,7 @@ const getOrderStatusByOrderId = async (orderId) => {
 
     return mapOrderStatus(order);
   } catch (err) {
-    console.log(
-      "Failed to get order status by order id reason -->" + err.message
-    );
+    console.log("Failed to get order status by order id reason -->" + err.message);
     throw new Error(err.message);
   }
 };
@@ -140,13 +143,11 @@ const getOrderRefundStatusByPhone = async (phone) => {
     if (!customerId) throw new Error("No order exists for this phone number.");
 
     const order = await getOrderByCustomerId(customerId);
-    if (!order) throw new Error("No order exists for this phone number");
+    if (!order) throw new Error("No order exists for this phone number.");
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log(
-      "Failed to get refund status by phone reason -->" + err.message
-    );
+    console.log("Failed to get refund status by phone reason -->" + err.message);
     return err.message;
   }
 };
@@ -158,9 +159,7 @@ const getOrderRefundStatusByOrderId = async (orderId) => {
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log(
-      "Failed to get refund status by order id reason --->" + err.message
-    );
+    console.log("Failed to get refund status by order id reason --->" + err.message);
     return err.message;
   }
 };
@@ -173,6 +172,10 @@ const cancelOrderByPhone = async (phone) => {
     const order = await getOrderByCustomerId(customerId);
     if (!order) throw new Error("No order exists for this phone number.");
 
+    if (!isCallerPhoneMatchedWithOrder(order, phone)) {
+      return `This order cannot be cancelled as it is not linked to your registered mobile number. Please call from the registered mobile number.`;
+    }
+
     return await mapOrderCancellation(order);
   } catch (err) {
     console.log("Failed to cancel order by phone reason -->" + err.message);
@@ -183,12 +186,15 @@ const cancelOrderByPhone = async (phone) => {
 const cancelOrderByOrderId = async (orderId, callerPhone) => {
   try {
     const order = await getOrderByOrderName(orderId);
+
     if (!order) {
       throw new Error("No order exists for this order id.");
     }
+
     if (!isCallerPhoneMatchedWithOrder(order, callerPhone)) {
-      return `This order cannot be cancelled as it is not linked to your registered mobile number. Please enter the Order ID associated with this number`;
+      return `This order cannot be cancelled as it is not linked to your registered mobile number. Please enter the Order ID associated with this number.`;
     }
+
     return await mapOrderCancellation(order);
   } catch (err) {
     console.log("Failed to cancel order by order id reason -->" + err.message);
@@ -205,9 +211,7 @@ const mapOrderStatus = (order) => {
     const clickpostDescription = getClickPostDescription(order);
 
     if (order?.cancelledAt) {
-      return `Your order was cancelled successfully on ${formatDate(
-        order.cancelledAt
-      )}. Prepaid orders are refunded automatically in 5 to 7 working days on source account.`;
+      return `Your order was cancelled successfully on ${formatDate(order.cancelledAt)}. Prepaid orders are refunded automatically in 5 to 7 working days on source account.`;
     }
 
     if (fulfillments.length === 0) {
@@ -327,9 +331,7 @@ const mapOrderRefundStatus = (order) => {
 
     return `Please note, for prepaid orders, it usually takes 2 to 7 working days for the refund to be credited in your source account.`;
   } catch (err) {
-    throw new Error(
-      "Failed to map order refund status reason -->" + err.message
-    );
+    throw new Error("Failed to map order refund status reason -->" + err.message);
   }
 };
 
@@ -342,26 +344,15 @@ const mapOrderCancellation = async (order) => {
       (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
     );
 
-    console.log("CANCEL ORDER CREATED AT =>", order?.createdAt);
-    console.log(
-      "CANCEL ORDER FULFILLMENTS =>",
-      safeArray(order?.fulfillments).length
-    );
-    console.log("CANCEL ORDER TRACKING =>", getClickPostTracking(order));
-
     if (isOrderCancelled && isCod) {
-      return `Your cash on delivery order placed on ${formatDate(
-        isOrderCancelled
-      )} is already cancelled.`;
+      return `Your cash on delivery order placed on ${formatDate(isOrderCancelled)} is already cancelled.`;
     }
 
     if (isOrderCancelled && !isCod) {
       const refundAmount =
         order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
-      return `Your order placed on ${formatDate(
-        isOrderCancelled
-      )} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
+      return `Your order placed on ${formatDate(isOrderCancelled)} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
     }
 
     if (!isWithin30Minutes(order)) {
@@ -388,16 +379,12 @@ const mapOrderCancellation = async (order) => {
     }
 
     if (isCod) {
-      return `Your cash on delivery order placed on ${formatDate(
-        order?.createdAt
-      )} is cancelled.`;
+      return `Your cash on delivery order placed on ${formatDate(order?.createdAt)} is cancelled.`;
     }
 
     const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
-    return `Your order placed on ${formatDate(
-      order?.createdAt
-    )} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
+    return `Your order placed on ${formatDate(order?.createdAt)} is cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 2 to 7 working days from the date of cancellation.`;
   } catch (err) {
     console.log("MAP ORDER CANCELLATION ERROR =>", err.message);
     return `Failed to cancel your order. Please connect with our executives.`;
