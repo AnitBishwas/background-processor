@@ -49,11 +49,6 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     const orderPhone = normalisePhoneForMatch(phone);
     return orderPhone && orderPhone === caller;
   });
-
-  console.log("CALLER PHONE NORMALIZED =>", caller);
-  console.log("ORDER PHONES =>", orderPhones);
-  console.log("PHONE MATCHED =>", matched);
-
   return matched;
 };
 
@@ -63,9 +58,6 @@ const isWithinCancellationWindow = (order) => {
   const createdAt = new Date(order.createdAt).getTime();
   const now = Date.now();
   const diffMinutes = (now - createdAt) / (1000 * 60);
-
-  console.log("ORDER AGE MINUTES =>", diffMinutes);
-
   return diffMinutes <= 30;
 };
 
@@ -166,11 +158,8 @@ const getOrderTrackingInfo = async (order) => {
       shopifyOrder: order,
     });
 
-    console.log("CLICKPOST FINAL =>", clickpostResponse);
-
     return clickpostResponse;
   } catch (err) {
-    console.log("TRACKING ERROR =>", err.message);
     return null;
   }
 };
@@ -180,7 +169,6 @@ const attachTrackingToOrder = async (order) => {
     const tracking = await getOrderTrackingInfo(order);
     order.tracking = tracking;
   } catch (err) {
-    console.log("Failed to get tracking reason -->" + err.message);
     order.tracking = null;
   }
 
@@ -219,9 +207,6 @@ const getOrderByCustomerId = async (customerId) => {
 const getOrderByOrderName = async (orderName) => {
   try {
     if (!orderName.includes("#")) orderName = `#${orderName}`;
-
-    console.log("ORDER STATUS BY ORDER ID =>", orderName);
-
     const query = `
       query {
         orders(first: 1, query: "name:${orderName}") {
@@ -245,8 +230,6 @@ const getOrderByOrderName = async (orderName) => {
 
     return await attachTrackingToOrder(order);
   } catch (err) {
-    console.log("ORDER FETCH ERROR =>", err);
-
     throw new Error(
       "Failed to get order by order name reason --> " + err.message
     );
@@ -289,10 +272,6 @@ const checkOrderCancellationEligibility = async (order) => {
   try {
     const currentStatus = await mapOrderStatus(order);
     const fulfillments = safeArray(order?.fulfillments);
-
-    console.log("CANCEL CHECK STATUS =>", currentStatus);
-    console.log("CANCEL CHECK FULFILLMENTS =>", fulfillments.length);
-
     if (order?.cancelledAt || currentStatus === "cancelled") {
       return {
         allowed: false,
@@ -365,14 +344,8 @@ const addOrderTags = async (orderId, tags = []) => {
       tags,
     };
 
-    console.log("ADD ORDER TAG VARIABLES =>", JSON.stringify(variables, null, 2));
-
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const { data, errors } = await client.request(query, { variables });
-
-    console.log("ADD ORDER TAG DATA =>", JSON.stringify(data, null, 2));
-    console.log("ADD ORDER TAG ERRORS =>", JSON.stringify(errors, null, 2));
-
     const userErrors = data?.tagsAdd?.userErrors || [];
 
     if (errors?.length) {
@@ -393,8 +366,6 @@ const addOrderTags = async (orderId, tags = []) => {
       success: true,
     };
   } catch (err) {
-    console.log("ADD ORDER TAG FAILED =>", err.message);
-
     return {
       success: false,
       error: err.message,
@@ -462,17 +433,8 @@ const cancelOrder = async (order) => {
             originalPaymentMethodsRefund: true,
           },
     };
-
-    console.log("PAYMENT GATEWAYS =>", paymentGatewayNames);
-    console.log("IS COD =>", isCod);
-    console.log("CANCEL VARIABLES =>", JSON.stringify(variables, null, 2));
-
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const { data, errors } = await client.request(query, { variables });
-
-    console.log("SHOPIFY CANCEL DATA =>", JSON.stringify(data, null, 2));
-    console.log("SHOPIFY CANCEL ERRORS =>", JSON.stringify(errors, null, 2));
-
     const userErrors = [
       ...(data?.orderCancel?.orderCancelUserErrors || []),
       ...(data?.orderCancel?.userErrors || []),
@@ -493,16 +455,12 @@ const cancelOrder = async (order) => {
     }
 
     const tagResponse = await addOrderTags(order.id, ["Ivr_cancel"]);
-    console.log("IVR CANCEL TAG RESPONSE =>", tagResponse);
-
     return {
       success: true,
       job: data?.orderCancel?.job || null,
       tagResponse,
     };
   } catch (err) {
-    console.log("SHOPIFY CANCEL FAILED =>", err.message);
-
     return {
       success: false,
       error: err.message,

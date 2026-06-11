@@ -16,8 +16,6 @@ const exotelRoutes = Router();
 // exotelRoutes.post("/tracking/order", getOrderTrackingController);
 
 exotelRoutes.get("/json", (req, res) => {
-  console.log("request was ");
-
   res
     .send({
       ok: true,
@@ -177,8 +175,6 @@ exotelRoutes.get("/:path", async (req, res) => {
 
     res.sendStatus(200);
   } catch (err) {
-    console.log("Failed to handle request reason -->" + err.message);
-
     res.status(400).send({
       ok: false,
     });
