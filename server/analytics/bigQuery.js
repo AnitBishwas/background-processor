@@ -112,6 +112,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
       event_date: new Date().toISOString(),
       timestamp: Date.now(),
     };
+    console.dir({message:"creating custom purchase event",eventPayload},{depth: null});
     const insertion = await insertBigqueryEvent(eventPayload);
   } catch (err) {
     throw new Error(
