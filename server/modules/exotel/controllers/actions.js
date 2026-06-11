@@ -88,10 +88,6 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     return orderPhone && orderPhone === caller;
   });
 
-  console.log("CALLER PHONE =>", caller);
-  console.log("ORDER PHONES =>", orderPhones);
-  console.log("PHONE MATCHED =>", matched);
-
   return matched;
 };
 
@@ -129,7 +125,6 @@ const getOrderStatusByPhone = async (phone) => {
 
     return mapOrderStatus(order);
   } catch (err) {
-    console.log("Failed to get order status by phone reason -->" + err.message);
     return err.message;
   }
 };
@@ -141,7 +136,6 @@ const getOrderStatusByOrderId = async (orderId) => {
 
     return mapOrderStatus(order);
   } catch (err) {
-    console.log("Failed to get order status by order id reason -->" + err.message);
     throw new Error(err.message);
   }
 };
@@ -156,7 +150,6 @@ const getOrderRefundStatusByPhone = async (phone) => {
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log("Failed to get refund status by phone reason -->" + err.message);
     return err.message;
   }
 };
@@ -168,7 +161,6 @@ const getOrderRefundStatusByOrderId = async (orderId) => {
 
     return mapOrderRefundStatus(order);
   } catch (err) {
-    console.log("Failed to get refund status by order id reason --->" + err.message);
     return err.message;
   }
 };
@@ -187,7 +179,6 @@ const cancelOrderByPhone = async (phone) => {
 
     return await mapOrderCancellation(order);
   } catch (err) {
-    console.log("Failed to cancel order by phone reason -->" + err.message);
     return err.message;
   }
 };
@@ -206,7 +197,6 @@ const cancelOrderByOrderId = async (orderId, callerPhone) => {
 
     return await mapOrderCancellation(order);
   } catch (err) {
-    console.log("Failed to cancel order by order id reason -->" + err.message);
     return err.message;
   }
 };
@@ -619,7 +609,6 @@ const mapOrderCancellation = async (order) => {
 
     const makeCancelRequest = await cancelOrder(order);
 
-    console.log("CANCEL ORDER RESPONSE =>", makeCancelRequest);
 
     if (!makeCancelRequest || makeCancelRequest?.success === false) {
       return `Failed to cancel your order. Reason: ${
@@ -633,7 +622,6 @@ const mapOrderCancellation = async (order) => {
 
     return `Your order placed on ${orderDate} is cancelled successfully. Your refund of amount ${refundAmount} is initiated and will be credited within 5-7 working days in your account from which the transaction was made.`;
   } catch (err) {
-    console.log("MAP ORDER CANCELLATION ERROR =>", err.message);
     return `Failed to cancel your order. Please connect with our executives.`;
   }
 };

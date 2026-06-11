@@ -51,10 +51,6 @@ const mapClickPostStatus = (shipment) => {
   const bucketDescription = normalize(
     latest?.clickpost_status_bucket_description
   );
-
-  console.log("CLICKPOST DESCRIPTION =>", description);
-  console.log("CLICKPOST BUCKET DESCRIPTION =>", bucketDescription);
-
   if (description.includes("rto")) return "rto";
   if (description === "delivered") return "delivered";
   if (description === "outfordelivery") return "out-for-delivery";
@@ -100,7 +96,6 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
     if (!awb) throw new Error("AWB missing");
 
     const dynamicCpIds = extractCpIdsFromShopifyOrder(shopifyOrder, awb);
-    console.log("DYNAMIC CP_IDS =>", dynamicCpIds);
 
     if (!dynamicCpIds.length) {
       throw new Error("CP_ID not found in Shopify tracking URL");
@@ -110,25 +105,20 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
       try {
         const url = `https://api.clickpost.in/api/v2/track-order/?username=${process.env.CLICKPOST_USERNAME}&key=${process.env.CLICKPOST_API_KEY}&waybill=${awb}&cp_id=${cpId}`;
 
-        console.log("CLICKPOST URL =>", url);
-
         const response = await fetch(url, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
 
         const data = await response.json();
-        console.log("CLICKPOST RESPONSE =>", JSON.stringify(data, null, 2));
 
         const shipment = data?.result?.[awb] || {};
-        console.log("CLICKPOST FINAL =>", JSON.stringify(shipment, null, 2));
 
         if (!shipment?.latest_status) {
           throw new Error("No latest_status found in ClickPost response");
         }
 
         const currentStatus = mapClickPostStatus(shipment);
-        console.log("CLICKPOST FINAL STATUS =>", currentStatus);
 
         return {
           success: true,
@@ -136,7 +126,6 @@ export const getTrackingStatusFromClickPost = async ({ awb, shopifyOrder }) => {
           tracking_data: shipment,
         };
       } catch (err) {
-        console.log("CP_ID FAILED =>", cpId);
         console.log(err);
       }
     }
