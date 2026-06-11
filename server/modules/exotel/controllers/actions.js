@@ -289,56 +289,251 @@ Note: Once your order is packed, we will share the tracking details with you on 
   }
 };
 
+const getRefundAmount = (order) => {
+  const refunds = safeArray(order?.refunds);
+
+  if (refunds.length > 0) {
+    return refunds
+      .map((el) => Number(el?.totalRefunded?.amount || 0))
+      .reduce((total, amount) => total + amount, 0);
+  }
+
+  return order?.currentTotalPriceSet?.shopMoney?.amount || "";
+};
+
+const isCodOrder = (order) => {
+  const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
+
+  return paymentGatewayNames.some((el) => {
+    const value = normalize(el);
+
+    return (
+      value.includes("cod") ||
+      value.includes("cashondelivery")
+    );
+  });
+};
+
+const getTags = (order) => {
+  if (Array.isArray(order?.tags)) {
+    return order.tags;
+  }
+
+  if (typeof order?.tags === "string") {
+    return order.tags.split(",").map((tag) => tag.trim());
+  }
+
+  return [];
+};
+
+const hasTag = (order, tagName) => {
+  const tags = getTags(order);
+  return tags.some((tag) => normalize(tag) === normalize(tagName));
+};
+
+const hasAnyTag = (order, tagNames) => {
+  return tagNames.some((tagName) => hasTag(order, tagName));
+};
+
+const isRefundInitiated = (order) => {
+  return hasAnyTag(order, [
+    "Refund_initiated",
+    "refund initiated",
+    "Refund Initiated",
+    "PARTIAL_REFUND_INITIATED",
+    "Partial Refund Initiated",
+  ]);
+};
+
+const isPartialRefund = (order) => {
+  return hasAnyTag(order, [
+    "partial_refund",
+    "Partial Refund",
+    "partially_refunded",
+    "Partially Refunded",
+    "PARTIAL_REFUND_INITIATED",
+    "Partial Refund Initiated",
+  ]);
+};
+
+const isCancelledLostDamaged = (order) => {
+  const currentStatus = getClickPostTracking(order)?.current_status;
+
+  return (
+    order?.cancelledAt ||
+    currentStatus === "lost" ||
+    currentStatus === "damaged" ||
+    hasAnyTag(order, ["lost", "damaged", "cancelled", "canceled"])
+  );
+};
+
+const getDeliveredDate = (order) => {
+  const trackingData = getClickPostData(order);
+  return formatDate(getLatestDate(trackingData));
+};
+
 const mapOrderRefundStatus = (order) => {
   try {
-    const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
-    const tags = safeArray(order?.tags);
-    const currentStatus = getClickPostTracking(order)?.current_status;
-    const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
-
-    const isCod = paymentGatewayNames.find(
-      (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
-    );
-
-    if (isCod) {
-      return `Refund for your latest order is not eligible as you placed a cash on delivery order. To know about our refund policy, you can refer it on www.swissbeauty.in.`;
-    }
-
+    const tracking = getClickPostTracking(order);
+    const currentStatus = tracking?.current_status;
     const refunds = safeArray(order?.refunds);
 
-    if (refunds.length > 0) {
-      const totalRefundedAmount = refunds
-        .map((el) => Number(el?.totalRefunded?.amount || 0))
-        .reduce((total, el) => total + el, 0);
+    const refundAmount = getRefundAmount(order);
+    const isCod = isCodOrder(order);
+    const deliveredDate = getDeliveredDate(order);
 
-      return `Refund for your latest order of amount ${totalRefundedAmount} was successfully credited in your original mode of payment and will reflect in your account in 2 to 5 working days. Please check your bank account for more details.`;
-    }
+    const hasRefund = refunds.length > 0;
+    const refundInitiated = isRefundInitiated(order);
+    const partialRefund = isPartialRefund(order);
+    const cancelledLostDamaged = isCancelledLostDamaged(order);
 
-    if (tags.includes("Refund_initiated")) {
-      return `Refund for your latest order of amount ${refundAmount} was initiated successfully and will be credited within 2 to 7 working days in your original mode of payment from the date of initiation.`;
-    }
-
+    /*
+      CASE 1:
+      Order status confirmed / tracking added / in transit / order placed / OFD
+      Refund not eligible
+    */
     if (
-      tags.includes("RTO") ||
-      tags.includes("Returned") ||
-      currentStatus === "rto"
+      !hasRefund &&
+      !refundInitiated &&
+      !cancelledLostDamaged &&
+      (
+        !currentStatus ||
+        currentStatus === "packed" ||
+        currentStatus === "in-transit" ||
+        currentStatus === "out-for-delivery" ||
+        currentStatus === "placed" ||
+        currentStatus === "confirmed"
+      )
     ) {
-      return `Refund has not yet been initiated for your latest order of amount ${refundAmount}. After this message, we will help you connect with one of our executives who will assist you with your refund request.`;
+      return `Refund is not eligible for this order as the current status of the order is ${currentStatus || "tracking added"}`;
     }
 
-    if (currentStatus === "delivered") {
-      return `Refund for your latest order of amount ${refundAmount} is not eligible as the current status of your order is delivered. To know about our refund policy, you can refer it on www.swissbeauty.in.`;
+    /*
+      CASE 5:
+      Delivered + Partial refund credited
+      Credited case initiated se pehle rakha hai, kyunki refund array available hai to credited maana jayega.
+    */
+    if (currentStatus === "delivered" && hasRefund && partialRefund) {
+      return `Partial Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
 
+    /*
+      CASE 3:
+      Delivered + Refund credited
+    */
+    if (currentStatus === "delivered" && hasRefund && !partialRefund) {
+      return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
+    }
+
+    /*
+      CASE 4:
+      Delivered + Partial refund initiated
+    */
+    if (currentStatus === "delivered" && refundInitiated && partialRefund) {
+      return `Partial Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used eligible for refund will be refunded within 24 hours`;
+    }
+
+    /*
+      CASE 2:
+      Delivered + Refund initiated
+    */
+    if (currentStatus === "delivered" && refundInitiated && !partialRefund) {
+      return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
+    }
+
+    /*
+      CASE 6:
+      Delivered + refund not done
+    */
+    if (currentStatus === "delivered" && !hasRefund && !refundInitiated) {
+      if (deliveredDate) {
+        return `No Refund has been initiated for this order as this was marked delivered on ${deliveredDate}`;
+      }
+
+      return `No Refund has been initiated for this order as this order was marked delivered.`;
+    }
+
+    /*
+      CASE 7:
+      Undelivered / failed delivery attempts
+    */
     if (
-      currentStatus === "in-transit" ||
-      currentStatus === "out-for-delivery" ||
-      currentStatus === "failed-delivery"
+      currentStatus === "failed-delivery" ||
+      currentStatus === "undelivered"
     ) {
-      return `Refund for your latest order of amount ${refundAmount} is not eligible as the current status of your order is in transit. To know about our refund policy, you can refer it on www.swissbeauty.in.`;
+      return `No refund has been initiated yet for this order, as the order is marked Undelivered. Please wait for it to be marked Returned (RTO). Once updated, the refund will be initiated within 24 to 48 hours.`;
     }
 
-    return `Please note, for prepaid orders, it usually takes 2 to 7 working days for the refund to be credited in your source account.`;
+    /*
+      CASE 9:
+      RTO + Refund credited
+      Credited case initiated se pehle rakha hai.
+    */
+    if (currentStatus === "rto" && hasRefund) {
+      return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
+    }
+
+    /*
+      CASE 8:
+      RTO + Refund initiated
+    */
+    if (currentStatus === "rto" && refundInitiated) {
+      return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
+    }
+
+    /*
+      CASE 10:
+      RTO + refund not done + PREPAID
+    */
+    if (currentStatus === "rto" && !hasRefund && !refundInitiated && !isCod) {
+      return `No refund has been initiated for this order yet. The order has been marked as Returned and is now eligible for a refund. You may connect with our support team for assistance with the refund`;
+    }
+
+    /*
+      CASE 11:
+      RTO + refund not done + COD
+    */
+    if (currentStatus === "rto" && !hasRefund && !refundInitiated && isCod) {
+      return `The order has been marked as Returned but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+    }
+
+    /*
+      CASE 13:
+      Cancelled / Lost / Damaged + refund credited + PREPAID
+      Credited case initiated se pehle rakha hai.
+    */
+    if (cancelledLostDamaged && hasRefund && !isCod) {
+      return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
+    }
+
+    /*
+      CASE 12:
+      Cancelled / Lost / Damaged + refund initiated + PREPAID
+    */
+    if (cancelledLostDamaged && refundInitiated && !isCod) {
+      return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
+    }
+
+    /*
+      CASE 14:
+      Cancelled / Lost / Damaged + refund not done + PREPAID
+    */
+    if (cancelledLostDamaged && !hasRefund && !refundInitiated && !isCod) {
+      return `No refund has been initiated for this order yet. The order has been marked as ${currentStatus || "cancelled"} and is eligible for a refund. You may connect with our support team for assistance with the refund`;
+    }
+
+    /*
+      CASE 15:
+      Cancelled / Lost / Damaged + refund not done + COD
+    */
+    if (cancelledLostDamaged && !hasRefund && !refundInitiated && isCod) {
+      return `The order has been marked as ${currentStatus || "cancelled"} but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+    }
+
+    /*
+      Default message
+    */
+    return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account`;
   } catch (err) {
     throw new Error("Failed to map order refund status reason -->" + err.message);
   }
