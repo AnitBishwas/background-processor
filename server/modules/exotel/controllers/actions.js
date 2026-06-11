@@ -5,6 +5,9 @@ import {
   getOrderByOrderName,
 } from "./shopify.js";
 
+const PACKED_CANCELLATION_MESSAGE =
+  "Your order cannot be cancelled as it is already packed and will be shipped in the next 24 to 48 hours. You can refuse the delivery upon arrival.";
+
 const safeArray = (value) => (Array.isArray(value) ? value : []);
 
 const normalize = (v) =>
@@ -346,8 +349,12 @@ const getCancellationStatusMessage = (order) => {
   const tracking = getClickPostTracking(order);
   const currentStatus = tracking?.current_status;
 
+  if (!isWithin30Minutes(order) && fulfillments.length === 0) {
+    return PACKED_CANCELLATION_MESSAGE;
+  }
+
   if (isPackedCancellationStatus(order)) {
-    return `Your order cannot be cancelled as it is already packed and will be shipped in the next 24 to 48 hours. You can refuse the delivery upon arrival.`;
+    return PACKED_CANCELLATION_MESSAGE;
   }
 
   if (currentStatus === "delivered") {
@@ -389,6 +396,7 @@ const mapOrderCancellation = async (order) => {
   try {
     const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
     const isOrderCancelled = order?.cancelledAt;
+    const fulfillments = safeArray(order?.fulfillments);
 
     const isCod = paymentGatewayNames.find(
       (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
@@ -404,6 +412,10 @@ const mapOrderCancellation = async (order) => {
 
     if (isOrderCancelled && !isCod) {
       return `Your order placed on ${orderDate} is already cancelled. Your refund of amount ${refundAmount} is initiated and will be credited in your source account in 5 to 7 working days from the date of cancellation.`;
+    }
+
+    if (!isWithin30Minutes(order) && fulfillments.length === 0) {
+      return PACKED_CANCELLATION_MESSAGE;
     }
 
     if (!isOrderCancellable(order)) {
