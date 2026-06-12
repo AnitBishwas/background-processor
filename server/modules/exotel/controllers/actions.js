@@ -362,6 +362,7 @@ const getDeliveredDate = (order) => {
   return formatDate(getLatestDate(trackingData));
 };
 
+
 const mapOrderRefundStatus = (order) => {
   try {
     const tracking = getClickPostTracking(order);
@@ -424,6 +425,11 @@ const mapOrderRefundStatus = (order) => {
       return `No refund has been initiated yet for this order, as the order is marked Undelivered. Please wait for it to be marked Returned (RTO). Once updated, the refund will be initiated within 24 to 48 hours.`;
     }
 
+    /*
+      IMPORTANT:
+      COD + RTO me hamesha COD not eligible message aayega,
+      chahe hasRefund true ho ya refundInitiated true.
+    */
     if (currentStatus === "rto" && isCod) {
       return `The order has been marked as Returned but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
     }
@@ -440,6 +446,11 @@ const mapOrderRefundStatus = (order) => {
       return `No refund has been initiated for this order yet. The order has been marked as Returned and is now eligible for a refund. You may connect with our support team for assistance with the refund`;
     }
 
+    /*
+      IMPORTANT:
+      COD + Cancelled/Lost/Damaged me hamesha COD not eligible message aayega,
+      chahe hasRefund true ho ya refundInitiated true.
+    */
     if (cancelledLostDamaged && isCod) {
       return `The order has been marked as ${currentStatus || "cancelled"} but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
     }
