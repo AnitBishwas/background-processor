@@ -291,19 +291,6 @@ const getRefundAmount = (order) => {
   return order?.currentTotalPriceSet?.shopMoney?.amount || "";
 };
 
-const isCodOrder = (order) => {
-  const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
-
-  return paymentGatewayNames.some((el) => {
-    const value = normalize(el);
-
-    return (
-      value.includes("cod") ||
-      value.includes("cashondelivery")
-    );
-  });
-};
-
 const getTags = (order) => {
   if (Array.isArray(order?.tags)) {
     return order.tags;
@@ -323,6 +310,27 @@ const hasTag = (order, tagName) => {
 
 const hasAnyTag = (order, tagNames) => {
   return tagNames.some((tagName) => hasTag(order, tagName));
+};
+
+const isCodOrder = (order) => {
+  const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
+
+  const hasCodGateway = paymentGatewayNames.some((el) => {
+    const value = normalize(el);
+
+    return (
+      value.includes("cod") ||
+      value.includes("cashondelivery")
+    );
+  });
+
+  const hasCodTag = hasAnyTag(order, [
+    "COD",
+    "COD-fallback-added",
+    "Gokwik_cod_fees",
+  ]);
+
+  return hasCodGateway || hasCodTag;
 };
 
 const isRefundInitiated = (order) => {
@@ -350,10 +358,21 @@ const isCancelledLostDamaged = (order) => {
   const currentStatus = getClickPostTracking(order)?.current_status;
 
   return (
-    order?.cancelledAt ||
+    !!order?.cancelledAt ||
+    !!order?.cancelReason ||
     currentStatus === "lost" ||
     currentStatus === "damaged" ||
-    hasAnyTag(order, ["lost", "damaged", "cancelled", "canceled"])
+    currentStatus === "cancelled" ||
+    currentStatus === "canceled" ||
+    hasAnyTag(order, [
+      "lost",
+      "damaged",
+      "cancelled",
+      "canceled",
+      "cancel",
+      "customer-cancel",
+      "customer_cancel",
+    ])
   );
 };
 
@@ -376,6 +395,10 @@ const mapOrderRefundStatus = (order) => {
     const refundInitiated = isRefundInitiated(order);
     const partialRefund = isPartialRefund(order);
     const cancelledLostDamaged = isCancelledLostDamaged(order);
+
+    if (cancelledLostDamaged && isCod) {
+      return `The order has been marked as ${currentStatus || "cancelled"} but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+    }
 
     /*
       CASE 1:
@@ -454,12 +477,16 @@ const mapOrderRefundStatus = (order) => {
       return `No refund has been initiated yet for this order, as the order is marked Undelivered. Please wait for it to be marked Returned (RTO). Once updated, the refund will be initiated within 24 to 48 hours.`;
     }
 
+    if (currentStatus === "rto" && isCod) {
+      return `The order has been marked as Returned but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+    }
+
     /*
       CASE 9:
       RTO + Refund credited
       Credited case initiated se pehle rakha hai.
     */
-    if (currentStatus === "rto" && hasRefund) {
+    if (currentStatus === "rto" && hasRefund && !isCod) {
       return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
 
@@ -467,7 +494,7 @@ const mapOrderRefundStatus = (order) => {
       CASE 8:
       RTO + Refund initiated
     */
-    if (currentStatus === "rto" && refundInitiated) {
+    if (currentStatus === "rto" && refundInitiated && !isCod) {
       return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
     }
 
@@ -635,4 +662,4 @@ export {
   cancelOrderByOrderId,
   mapOrderStatus,
   mapOrderCancellation,
-}; 
+};
