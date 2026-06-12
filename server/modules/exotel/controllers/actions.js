@@ -377,11 +377,6 @@ const mapOrderRefundStatus = (order) => {
     const partialRefund = isPartialRefund(order);
     const cancelledLostDamaged = isCancelledLostDamaged(order);
 
-    /*
-      CASE 1:
-      Order status confirmed / tracking added / in transit / order placed / OFD
-      Refund not eligible
-    */
     if (
       !hasRefund &&
       !refundInitiated &&
@@ -398,43 +393,22 @@ const mapOrderRefundStatus = (order) => {
       return `Refund is not eligible for this order as the current status of the order is ${currentStatus || "tracking added"}`;
     }
 
-    /*
-      CASE 5:
-      Delivered + Partial refund credited
-      Credited case initiated se pehle rakha hai, kyunki refund array available hai to credited maana jayega.
-    */
     if (currentStatus === "delivered" && hasRefund && partialRefund) {
       return `Partial Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
 
-    /*
-      CASE 3:
-      Delivered + Refund credited
-    */
     if (currentStatus === "delivered" && hasRefund && !partialRefund) {
       return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
 
-    /*
-      CASE 4:
-      Delivered + Partial refund initiated
-    */
     if (currentStatus === "delivered" && refundInitiated && partialRefund) {
       return `Partial Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used eligible for refund will be refunded within 24 hours`;
     }
 
-    /*
-      CASE 2:
-      Delivered + Refund initiated
-    */
     if (currentStatus === "delivered" && refundInitiated && !partialRefund) {
       return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
     }
 
-    /*
-      CASE 6:
-      Delivered + refund not done
-    */
     if (currentStatus === "delivered" && !hasRefund && !refundInitiated) {
       if (deliveredDate) {
         return `No Refund has been initiated for this order as this was marked delivered on ${deliveredDate}`;
@@ -443,10 +417,6 @@ const mapOrderRefundStatus = (order) => {
       return `No Refund has been initiated for this order as this order was marked delivered.`;
     }
 
-    /*
-      CASE 7:
-      Undelivered / failed delivery attempts
-    */
     if (
       currentStatus === "failed-delivery" ||
       currentStatus === "undelivered"
@@ -454,75 +424,38 @@ const mapOrderRefundStatus = (order) => {
       return `No refund has been initiated yet for this order, as the order is marked Undelivered. Please wait for it to be marked Returned (RTO). Once updated, the refund will be initiated within 24 to 48 hours.`;
     }
 
-    /*
-      CASE 9:
-      RTO + Refund credited
-      Credited case initiated se pehle rakha hai.
-    */
-    if (currentStatus === "rto" && hasRefund) {
+    if (currentStatus === "rto" && isCod) {
+      return `The order has been marked as Returned but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+    }
+
+    if (currentStatus === "rto" && hasRefund && !isCod) {
       return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
 
-    /*
-      CASE 8:
-      RTO + Refund initiated
-    */
-    if (currentStatus === "rto" && refundInitiated) {
+    if (currentStatus === "rto" && refundInitiated && !isCod) {
       return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
     }
 
-    /*
-      CASE 10:
-      RTO + refund not done + PREPAID
-    */
     if (currentStatus === "rto" && !hasRefund && !refundInitiated && !isCod) {
       return `No refund has been initiated for this order yet. The order has been marked as Returned and is now eligible for a refund. You may connect with our support team for assistance with the refund`;
     }
 
-    /*
-      CASE 11:
-      RTO + refund not done + COD
-    */
-    if (currentStatus === "rto" && !hasRefund && !refundInitiated && isCod) {
-      return `The order has been marked as Returned but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+    if (cancelledLostDamaged && isCod) {
+      return `The order has been marked as ${currentStatus || "cancelled"} but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
     }
 
-    /*
-      CASE 13:
-      Cancelled / Lost / Damaged + refund credited + PREPAID
-      Credited case initiated se pehle rakha hai.
-    */
     if (cancelledLostDamaged && hasRefund && !isCod) {
       return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
 
-    /*
-      CASE 12:
-      Cancelled / Lost / Damaged + refund initiated + PREPAID
-    */
     if (cancelledLostDamaged && refundInitiated && !isCod) {
       return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
     }
 
-    /*
-      CASE 14:
-      Cancelled / Lost / Damaged + refund not done + PREPAID
-    */
     if (cancelledLostDamaged && !hasRefund && !refundInitiated && !isCod) {
       return `No refund has been initiated for this order yet. The order has been marked as ${currentStatus || "cancelled"} and is eligible for a refund. You may connect with our support team for assistance with the refund`;
     }
 
-    /*
-      CASE 15:
-      Cancelled / Lost / Damaged + refund not done + COD
-    */
-    if (cancelledLostDamaged && !hasRefund && !refundInitiated && isCod) {
-      return `The order has been marked as ${currentStatus || "cancelled"} but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
-    }
-
-    /*
-      Default message
-    */
     return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account`;
   } catch (err) {
     throw new Error("Failed to map order refund status reason -->" + err.message);
