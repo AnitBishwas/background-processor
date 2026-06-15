@@ -22,8 +22,14 @@ const normalizePhone = (phone) => {
 
   let digits = phone.toString().replace(/\D/g, "");
 
-  if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
-  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+
   if (digits.length !== 10) return null;
 
   return digits;
@@ -66,6 +72,7 @@ const isWithin30Minutes = (order) => {
 
 const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
   const caller = normalizePhone(callerPhone);
+
   if (!caller) return false;
 
   const orderPhones = [
@@ -76,10 +83,12 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     order?.billingAddress?.phone,
   ];
 
-  return orderPhones.some((phone) => {
+  const matched = orderPhones.some((phone) => {
     const orderPhone = normalizePhone(phone);
     return orderPhone && orderPhone === caller;
   });
+
+  return matched;
 };
 
 const isPackedCancellationStatus = (order) => {
@@ -127,7 +136,7 @@ const getOrderStatusByOrderId = async (orderId) => {
 
     return mapOrderStatus(order);
   } catch (err) {
-    return err.message;
+    throw new Error(err.message);
   }
 };
 
@@ -201,9 +210,7 @@ const mapOrderStatus = (order) => {
     const clickpostDescription = getClickPostDescription(order);
 
     if (order?.cancelledAt) {
-      return `Your order was cancelled successfully on ${formatDate(
-        order.cancelledAt
-      )}. Prepaid orders are refunded automatically in 5 to 7 working days on source account.`;
+      return `Your order was cancelled successfully on ${formatDate(order.cancelledAt)}. Prepaid orders are refunded automatically in 5 to 7 working days on source account.`;
     }
 
     if (fulfillments.length === 0) {
@@ -268,7 +275,7 @@ Note: Once your order is packed, we will share the tracking details with you on 
 
     return `Your order is currently in transit and will be delivered to you soon. Kindly check your WhatsApp or email for the tracking link.`;
   } catch (err) {
-    return `Your order details are currently being updated. Kindly check your WhatsApp or email for the latest update.`;
+    throw new Error("Failed to map order status reason -->" + err.message);
   }
 };
 
@@ -281,11 +288,13 @@ const getRefundAmount = (order) => {
       .reduce((total, amount) => total + amount, 0);
   }
 
-  return Number(order?.currentTotalPriceSet?.shopMoney?.amount || 0);
+  return order?.currentTotalPriceSet?.shopMoney?.amount || "";
 };
 
 const getTags = (order) => {
-  if (Array.isArray(order?.tags)) return order.tags;
+  if (Array.isArray(order?.tags)) {
+    return order.tags;
+  }
 
   if (typeof order?.tags === "string") {
     return order.tags.split(",").map((tag) => tag.trim());
@@ -304,20 +313,24 @@ const hasAnyTag = (order, tagNames) => {
 };
 
 const isCodOrder = (order) => {
-  const values = [
-    ...safeArray(order?.paymentGatewayNames),
-    ...getTags(order),
-  ];
+  const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
 
-  return values.some((el) => {
+  const hasCodGateway = paymentGatewayNames.some((el) => {
     const value = normalize(el);
 
     return (
       value.includes("cod") ||
-      value.includes("cashondelivery") ||
-      value.includes("gokwikcod")
+      value.includes("cashondelivery")
     );
   });
+
+  const hasCodTag = hasAnyTag(order, [
+    "COD",
+    "COD-fallback-added",
+    "Gokwik_cod_fees",
+  ]);
+
+  return hasCodGateway || hasCodTag;
 };
 
 const isRefundInitiated = (order) => {
@@ -387,17 +400,20 @@ const mapOrderRefundStatus = (order) => {
     const isCod = isCodOrder(order);
     const deliveredDate = getDeliveredDate(order);
 
-    const hasRefundAmount = refunds.some(
+   const hasRefundAmount = refunds.some(
       (el) => Number(el?.totalRefunded?.amount || 0) > 0
     );
 
-    const refundCredited =
-      hasRefundAmount || (isRefundCredited(order) && refundAmount > 0);
-
+    const refundCredited = hasRefundAmount || (!isCod && isRefundCredited(order));
     const refundInitiated = isRefundInitiated(order);
     const partialRefund = isPartialRefund(order);
     const cancelledLostDamaged = isCancelledLostDamaged(order);
 
+    /*
+      IMPORTANT:
+      Refund credited case should always be first.
+      If Shopify refund array exists, refund is already credited/processed.
+    */
     if (refundCredited && partialRefund) {
       return `Partial Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
@@ -406,44 +422,69 @@ const mapOrderRefundStatus = (order) => {
       return `Refund for your order of amount ${refundAmount} is successfully credited in your account. Please check your bank statement for more details.`;
     }
 
+    /*
+      Refund initiated cases
+    */
     if (refundInitiated && partialRefund) {
       return `Partial Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used eligible for refund will be refunded within 24 hours`;
     }
 
-    if (refundInitiated && !isCod) {
+    if (refundInitiated) {
       return `Refund for your order of amount ${refundAmount} is initiated successfully and will be credited within 2 to 7 working days in your account. Any cashback used will be refunded within 24 hours`;
     }
 
+    /*
+      Cancelled / Lost / Damaged + COD + no refund
+    */
     if (cancelledLostDamaged && isCod) {
-      return `The order has been marked as ${
-        currentStatus || "cancelled"
-      } but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+      return `The order has been marked as ${currentStatus || "cancelled"} but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
     }
 
+    /*
+      Cancelled / Lost / Damaged + prepaid + refund not done
+    */
     if (cancelledLostDamaged && !isCod) {
-      return `No refund has been initiated for this order yet. The order has been marked as ${
-        currentStatus || "cancelled"
-      } and is eligible for a refund. You may connect with our support team for assistance with the refund`;
+      return `No refund has been initiated for this order yet. The order has been marked as ${currentStatus || "cancelled"} and is eligible for a refund. You may connect with our support team for assistance with the refund`;
     }
 
+    /*
+      Delivered + refund not done
+    */
     if (currentStatus === "delivered") {
-      return deliveredDate
-        ? `No Refund has been initiated for this order as this was marked delivered on ${deliveredDate}`
-        : `No Refund has been initiated for this order as this order was marked delivered.`;
+      if (deliveredDate) {
+        return `No Refund has been initiated for this order as this was marked delivered on ${deliveredDate}`;
+      }
+
+      return `No Refund has been initiated for this order as this order was marked delivered.`;
     }
 
-    if (currentStatus === "failed-delivery" || currentStatus === "undelivered") {
+    /*
+      Undelivered / failed delivery attempts
+    */
+    if (
+      currentStatus === "failed-delivery" ||
+      currentStatus === "undelivered"
+    ) {
       return `No refund has been initiated yet for this order, as the order is marked Undelivered. Please wait for it to be marked Returned (RTO). Once updated, the refund will be initiated within 24 to 48 hours.`;
     }
 
+    /*
+      RTO + COD
+    */
     if (currentStatus === "rto" && isCod) {
       return `The order has been marked as Returned but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
     }
 
+    /*
+      RTO + prepaid + no refund
+    */
     if (currentStatus === "rto" && !isCod) {
       return `No refund has been initiated for this order yet. The order has been marked as Returned and is now eligible for a refund. You may connect with our support team for assistance with the refund`;
     }
 
+    /*
+      In process / packed / in transit / OFD / confirmed
+    */
     if (
       !currentStatus ||
       currentStatus === "packed" ||
@@ -457,7 +498,6 @@ const mapOrderRefundStatus = (order) => {
 
     return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account`;
   } catch (err) {
-    console.log("REFUND STATUS MAP ERROR =>", err.message);
     return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account`;
   }
 };
@@ -512,9 +552,13 @@ const getCancellationStatusMessage = (order) => {
 
 const mapOrderCancellation = async (order) => {
   try {
+    const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
     const isOrderCancelled = order?.cancelledAt;
     const fulfillments = safeArray(order?.fulfillments);
-    const isCod = isCodOrder(order);
+
+    const isCod = paymentGatewayNames.find(
+      (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
+    );
 
     const orderDate = formatDate(order?.createdAt);
     const refundAmount =
@@ -537,6 +581,7 @@ const mapOrderCancellation = async (order) => {
     }
 
     const makeCancelRequest = await cancelOrder(order);
+
 
     if (!makeCancelRequest || makeCancelRequest?.success === false) {
       return `Failed to cancel your order. Reason: ${
@@ -562,6 +607,5 @@ export {
   cancelOrderByPhone,
   cancelOrderByOrderId,
   mapOrderStatus,
-  mapOrderRefundStatus,
   mapOrderCancellation,
 };

@@ -93,9 +93,6 @@ const mapActions = async (action, phone, digits) => {
         break;
       case "order_refund_status_phone":
         data["text"] = await getOrderRefundStatusByPhone(phone);
-        if (data["text"].includes("not eligible")) {
-          data["whatsappLabel"] = "order_cod_refund_not_eligible";
-        }
         break;
       case "order_refund_status_id":
         data["text"] = await getOrderRefundStatusByOrderId(digits);

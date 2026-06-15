@@ -8,25 +8,6 @@ const shop =
 
 const safeArray = (value) => (Array.isArray(value) ? value : []);
 
-const isCodOrder = (order) => {
-  const values = [
-    ...safeArray(order?.paymentGatewayNames),
-    ...safeArray(order?.tags),
-  ];
-
-  return values.some((el) => {
-    const value = String(el || "")
-      .toLowerCase()
-      .replace(/[\s_-]+/g, "");
-
-    return (
-      value.includes("cod") ||
-      value.includes("cashondelivery") ||
-      value.includes("gokwikcod")
-    );
-  });
-};
-
 const normalisePhoneNumber = (phone) => {
   if (!phone) return null;
 
@@ -53,6 +34,7 @@ const normalisePhoneForMatch = (phone) => {
 
 const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
   const caller = normalisePhoneForMatch(callerPhone);
+
   if (!caller) return false;
 
   const orderPhones = [
@@ -63,18 +45,19 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     order?.billingAddress?.phone,
   ];
 
-  return orderPhones.some((phone) => {
+  const matched = orderPhones.some((phone) => {
     const orderPhone = normalisePhoneForMatch(phone);
     return orderPhone && orderPhone === caller;
   });
+  return matched;
 };
 
 const isWithinCancellationWindow = (order) => {
   if (!order?.createdAt) return false;
 
   const createdAt = new Date(order.createdAt).getTime();
-  const diffMinutes = (Date.now() - createdAt) / (1000 * 60);
-
+  const now = Date.now();
+  const diffMinutes = (now - createdAt) / (1000 * 60);
   return diffMinutes <= 30;
 };
 
@@ -158,6 +141,7 @@ const getCustomerIdByPhoneNumber = async (phone) => {
 const getOrderTrackingInfo = async (order) => {
   try {
     const fulfillments = safeArray(order?.fulfillments);
+
     if (!fulfillments.length) return null;
 
     const latestFulfillment = fulfillments[fulfillments.length - 1];
@@ -166,21 +150,25 @@ const getOrderTrackingInfo = async (order) => {
     if (!trackingInfo) return null;
 
     const awb = trackingInfo?.number;
+
     if (!awb) return null;
 
-    return await getTrackingStatusFromClickPost({
+    const clickpostResponse = await getTrackingStatusFromClickPost({
       awb,
       shopifyOrder: order,
     });
-  } catch {
+
+    return clickpostResponse;
+  } catch (err) {
     return null;
   }
 };
 
 const attachTrackingToOrder = async (order) => {
   try {
-    order.tracking = await getOrderTrackingInfo(order);
-  } catch {
+    const tracking = await getOrderTrackingInfo(order);
+    order.tracking = tracking;
+  } catch (err) {
     order.tracking = null;
   }
 
@@ -219,7 +207,6 @@ const getOrderByCustomerId = async (customerId) => {
 const getOrderByOrderName = async (orderName) => {
   try {
     if (!orderName.includes("#")) orderName = `#${orderName}`;
-
     const query = `
       query {
         orders(first: 1, query: "name:${orderName}") {
@@ -249,37 +236,13 @@ const getOrderByOrderName = async (orderName) => {
   }
 };
 
-const getOrderTags = (order) =>
-  Array.isArray(order?.tags)
-    ? order.tags.map((el) => String(el || "").toLowerCase())
-    : String(order?.tags || "")
-        .split(",")
-        .map((el) => el.trim().toLowerCase());
-
-const hasRefundAmount = (order) => {
-  const refunds = safeArray(order?.refunds);
-
-  return refunds.some(
-    (refund) => Number(refund?.totalRefunded?.amount || 0) > 0
-  );
-};
-
 const mapOrderStatus = async (order) => {
   try {
-    const orderTags = getOrderTags(order);
-    const isCod = isCodOrder(order);
+    const orderTags = safeArray(order?.tags).map((el) => el.toLowerCase());
 
-    if (hasRefundAmount(order) || orderTags.includes("refund_credited")) {
-      return "refund_successfull";
-    }
-
-    if (order?.cancelledAt) {
-      return "cancelled";
-    }
-
-    if (!isCod && orderTags.includes("refund_initiated")) {
-      return "refund_initiated";
-    }
+    if (orderTags.includes("refund_credited")) return "refund_successfull";
+    if (orderTags.includes("refund_initiated")) return "refund_initiated";
+    if (order?.cancelledAt) return "cancelled";
 
     const tracking = order?.tracking || null;
 
@@ -309,7 +272,6 @@ const checkOrderCancellationEligibility = async (order) => {
   try {
     const currentStatus = await mapOrderStatus(order);
     const fulfillments = safeArray(order?.fulfillments);
-
     if (order?.cancelledAt || currentStatus === "cancelled") {
       return {
         allowed: false,
@@ -384,7 +346,6 @@ const addOrderTags = async (orderId, tags = []) => {
 
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const { data, errors } = await client.request(query, { variables });
-
     const userErrors = data?.tagsAdd?.userErrors || [];
 
     if (errors?.length) {
@@ -448,7 +409,17 @@ const cancelOrder = async (order) => {
       }
     `;
 
-    const isCod = isCodOrder(order);
+    const paymentGatewayNames = safeArray(order?.paymentGatewayNames).map(
+      (el) => String(el || "").toLowerCase()
+    );
+
+    const isCod = paymentGatewayNames.some(
+      (el) =>
+        el.includes("cash_on_delivery") ||
+        el.includes("cash on delivery") ||
+        el.includes("cod") ||
+        el.includes("gokwik")
+    );
 
     const variables = {
       orderId: order.id,
@@ -462,10 +433,8 @@ const cancelOrder = async (order) => {
             originalPaymentMethodsRefund: true,
           },
     };
-
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const { data, errors } = await client.request(query, { variables });
-
     const userErrors = [
       ...(data?.orderCancel?.orderCancelUserErrors || []),
       ...(data?.orderCancel?.userErrors || []),
@@ -486,7 +455,6 @@ const cancelOrder = async (order) => {
     }
 
     const tagResponse = await addOrderTags(order.id, ["Ivr_cancel"]);
-
     return {
       success: true,
       job: data?.orderCancel?.job || null,
@@ -569,28 +537,6 @@ const getOrderRefundStatusByOrderName = async (orderName) => {
     }
 
     const currentOrderStatus = await mapOrderStatus(order);
-    const isCod = isCodOrder(order);
-
-    const isCancelledLostDamaged =
-      order?.cancelledAt ||
-      currentOrderStatus === "cancelled" ||
-      currentOrderStatus === "lost" ||
-      currentOrderStatus === "damaged";
-
-    if (currentOrderStatus === "refund_successfull") {
-      return {
-        status: "refund_successfull",
-        order,
-      };
-    }
-
-    if (isCod && isCancelledLostDamaged) {
-      return {
-        status: "order_cod_refund_not_eligible",
-        order,
-        statusText: currentOrderStatus || "cancelled",
-      };
-    }
 
     if (currentOrderStatus === "refund_initiated") {
       return {
@@ -599,7 +545,14 @@ const getOrderRefundStatusByOrderName = async (orderName) => {
       };
     }
 
-    if (isCod) {
+    if (currentOrderStatus === "refund_successfull") {
+      return {
+        status: "refund_successfull",
+        order,
+      };
+    }
+
+    if (safeArray(order?.paymentGatewayNames).includes("cash_on_delivery")) {
       return {
         status: "order_cod_refund_not_eligible",
         order,
@@ -610,8 +563,7 @@ const getOrderRefundStatusByOrderName = async (orderName) => {
     if (
       currentOrderStatus === "packed" ||
       currentOrderStatus === "in-transit" ||
-      currentOrderStatus === "attempted_delivery" ||
-      currentOrderStatus === "placed"
+      currentOrderStatus === "attempted_delivery"
     ) {
       return {
         status: "order_status_refund_not_eligible",
@@ -621,8 +573,7 @@ const getOrderRefundStatusByOrderName = async (orderName) => {
     }
 
     return {
-      status: "refund_status_unknown",
-      order,
+      status: null,
     };
   } catch (err) {
     throw new Error(
@@ -653,28 +604,6 @@ const getOrderRefundStatusByPhone = async (phone) => {
     }
 
     const currentOrderStatus = await mapOrderStatus(order);
-    const isCod = isCodOrder(order);
-
-    const isCancelledLostDamaged =
-      order?.cancelledAt ||
-      currentOrderStatus === "cancelled" ||
-      currentOrderStatus === "lost" ||
-      currentOrderStatus === "damaged";
-
-    if (currentOrderStatus === "refund_successfull") {
-      return {
-        status: "refund_successfull",
-        order,
-      };
-    }
-
-    if (isCod && isCancelledLostDamaged) {
-      return {
-        status: "order_cod_refund_not_eligible",
-        order,
-        statusText: currentOrderStatus || "cancelled",
-      };
-    }
 
     if (currentOrderStatus === "refund_initiated") {
       return {
@@ -683,7 +612,14 @@ const getOrderRefundStatusByPhone = async (phone) => {
       };
     }
 
-    if (isCod) {
+    if (currentOrderStatus === "refund_successfull") {
+      return {
+        status: "refund_successfull",
+        order,
+      };
+    }
+
+    if (safeArray(order?.paymentGatewayNames).includes("cash_on_delivery")) {
       return {
         status: "order_cod_refund_not_eligible",
         order,
@@ -694,8 +630,7 @@ const getOrderRefundStatusByPhone = async (phone) => {
     if (
       currentOrderStatus === "packed" ||
       currentOrderStatus === "in-transit" ||
-      currentOrderStatus === "attempted_delivery" ||
-      currentOrderStatus === "placed"
+      currentOrderStatus === "attempted_delivery"
     ) {
       return {
         status: "order_status_refund_not_eligible",
@@ -705,8 +640,7 @@ const getOrderRefundStatusByPhone = async (phone) => {
     }
 
     return {
-      status: "refund_status_unknown",
-      order,
+      status: null,
     };
   } catch (err) {
     throw new Error(
