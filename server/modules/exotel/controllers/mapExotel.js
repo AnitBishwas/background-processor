@@ -203,10 +203,11 @@ const mapRequestToPlainText = (status, order, statusText) => {
       break;
 
     case "order_cod_refund_not_eligible":
-      text =
-        "Refund for your latest order is not eligible as you placed a cash on delivery order. To know about our refund policy, you can check the message on WhatsApp that will be sent to you shortly.";
-      whatsapp = "order_cod_refund_not_eligible";
-      break;
+    text = `The order has been marked as ${
+      statusText || "cancelled"
+    } but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+    whatsapp = "order_cod_refund_not_eligible";
+    break;
 
     case "order_status_refund_not_eligible":
       text = `Refund for your latest order of amount ${order?.currentTotalPriceSet?.shopMoney?.amount} is not eligible as the current status of your order is ${statusText}. To know about our refund policy, you can check the message on WhatsApp that will be sent to you shortly.`;
