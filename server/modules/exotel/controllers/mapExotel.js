@@ -7,6 +7,24 @@ import {
   cancelOrderByOrderName,
 } from "./shopify.js";
 
+const isCodOrder = (order) => {
+  const values = order?.paymentGatewayNames || [];
+
+  return values.some((el) => {
+    const value = String(el || "")
+      .toLowerCase()
+      .replace(/[\s_-]+/g, "");
+
+    return value.includes("cod") || value.includes("cashondelivery");
+  });
+};
+
+const getRefundAmount = (order) => {
+  return (order?.refunds || []).reduce((sum, refund) => {
+    return sum + Number(refund?.totalRefunded?.amount || 0);
+  }, 0);
+};
+
 const mapExotelRequests = async (req, res) => {
   try {
     const appId = req.query.flow_id?.replace(
@@ -125,10 +143,12 @@ const mapRequestToPlainText = (status, order, statusText) => {
 
   switch (status) {
     case "no_order_against_phone":
+    case "no_customer_found_phone":
       text = "No order exists for this phone number";
       break;
 
     case "no_order_against_orderId":
+    case "no_order_found_orderId":
       text = "No order exists for this order id";
       break;
 
@@ -138,15 +158,15 @@ const mapRequestToPlainText = (status, order, statusText) => {
       break;
 
     case "refund_successfull":
-      text = `Refund for your latest order of amount ${
-        order?.refunds?.[0]?.totalRefunded?.amount || ""
-      } was successfully credited in your original mode of payment. Please check your bank account for more details.`;
+      text = `Refund for your latest order of amount ${getRefundAmount(
+        order
+      )} was successfully credited in your original mode of payment. Please check your bank account for more details.`;
       break;
 
     case "refund_initiated":
-      text = `Refund for your latest order of amount ${
-        order?.refunds?.[0]?.totalRefunded?.amount || ""
-      } was initiated successfully and will be credited within 5-7 working days in your original mode of payment from the date of initiation.`;
+      text = `Refund for your latest order of amount ${getRefundAmount(
+        order
+      )} was initiated successfully and will be credited within 5-7 working days in your original mode of payment from the date of initiation.`;
       break;
 
     case "cancelled":
@@ -194,14 +214,13 @@ const mapRequestToPlainText = (status, order, statusText) => {
       break;
 
     case "order_already_cancelled":
-      text =
-        order?.paymentGatewayNames?.indexOf("cash_on_delivery") !== -1
-          ? `Your order is already cancelled on ${new Date(
-              order.cancelledAt
-            ).toDateString()}.`
-          : `Your order placed on ${new Date(
-              order.createdAt
-            ).toDateString()} is already cancelled.`;
+      text = isCodOrder(order)
+        ? `Your order is already cancelled on ${new Date(
+            order.cancelledAt
+          ).toDateString()}.`
+        : `Your order placed on ${new Date(
+            order.createdAt
+          ).toDateString()} is already cancelled.`;
       break;
 
     case "order_in_process":
@@ -220,14 +239,18 @@ const mapRequestToPlainText = (status, order, statusText) => {
       break;
 
     case "order_cancelled":
+      text = isCodOrder(order)
+        ? `Your cash on delivery order placed on ${new Date(
+            order.createdAt
+          ).toDateString()} is cancelled successfully.`
+        : `Your order placed on ${new Date(
+            order.createdAt
+          ).toDateString()} is cancelled successfully. Your refund will be credited within 5-7 working days.`;
+      break;
+
+    case "refund_status_unknown":
       text =
-        order?.paymentGatewayNames?.indexOf("cash_on_delivery") !== -1
-          ? `Your cash on delivery order placed on ${new Date(
-              order.createdAt
-            ).toDateString()} is cancelled successfully.`
-          : `Your order placed on ${new Date(
-              order.createdAt
-            ).toDateString()} is cancelled successfully. Your refund will be credited within 5-7 working days.`;
+        "Please note, for prepaid orders, it usually takes 5 to 7 working days for the refund to be credited in your source account.";
       break;
 
     case "website_offer":
@@ -237,6 +260,11 @@ const mapRequestToPlainText = (status, order, statusText) => {
     case "bulk_order":
       text = null;
       whatsapp = status;
+      break;
+
+    default:
+      text =
+        "Please note, for prepaid orders, it usually takes 5 to 7 working days for the refund to be credited in your source account.";
       break;
   }
 
