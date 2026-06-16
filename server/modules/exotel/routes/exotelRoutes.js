@@ -165,13 +165,13 @@ exotelRoutes.get("/:path", async (req, res) => {
       await storeTextInDb(CallSid, mapCorrespondingActions.text);
     }
 
-    if (mapCorrespondingActions.whatsappLabel) {
-      await sendLimeChatWhatsappTrigger(
-        CallSid,
-        customerPhone,
-        mapCorrespondingActions.whatsappLabel
-      );
-    }
+    // if (mapCorrespondingActions.whatsappLabel) {
+    //   await sendLimeChatWhatsappTrigger(
+    //     CallSid,
+    //     customerPhone,
+    //     mapCorrespondingActions.whatsappLabel
+    //   );
+    // }
 
     res.sendStatus(200);
   } catch (err) {

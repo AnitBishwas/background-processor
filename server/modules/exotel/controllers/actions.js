@@ -22,8 +22,14 @@ const normalizePhone = (phone) => {
 
   let digits = phone.toString().replace(/\D/g, "");
 
-  if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
-  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+
   if (digits.length !== 10) return null;
 
   return digits;
@@ -66,6 +72,7 @@ const isWithin30Minutes = (order) => {
 
 const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
   const caller = normalizePhone(callerPhone);
+
   if (!caller) return false;
 
   const orderPhones = [
@@ -76,10 +83,12 @@ const isCallerPhoneMatchedWithOrder = (order, callerPhone) => {
     order?.billingAddress?.phone,
   ];
 
-  return orderPhones.some((phone) => {
+  const matched = orderPhones.some((phone) => {
     const orderPhone = normalizePhone(phone);
     return orderPhone && orderPhone === caller;
   });
+
+  return matched;
 };
 
 const isPackedCancellationStatus = (order) => {
@@ -127,7 +136,7 @@ const getOrderStatusByOrderId = async (orderId) => {
 
     return mapOrderStatus(order);
   } catch (err) {
-    return err.message;
+    throw new Error(err.message);
   }
 };
 
@@ -201,9 +210,7 @@ const mapOrderStatus = (order) => {
     const clickpostDescription = getClickPostDescription(order);
 
     if (order?.cancelledAt) {
-      return `Your order was cancelled successfully on ${formatDate(
-        order.cancelledAt
-      )}. Prepaid orders are refunded automatically in 5 to 7 working days on source account.`;
+      return `Your order was cancelled successfully on ${formatDate(order.cancelledAt)}. Prepaid orders are refunded automatically in 5 to 7 working days on source account.`;
     }
 
     if (fulfillments.length === 0) {
@@ -268,7 +275,7 @@ Note: Once your order is packed, we will share the tracking details with you on 
 
     return `Your order is currently in transit and will be delivered to you soon. Kindly check your WhatsApp or email for the tracking link.`;
   } catch (err) {
-    return `Your order details are currently being updated. Kindly check your WhatsApp or email for the latest update.`;
+    throw new Error("Failed to map order status reason -->" + err.message);
   }
 };
 
@@ -285,7 +292,9 @@ const getRefundAmount = (order) => {
 };
 
 const getTags = (order) => {
-  if (Array.isArray(order?.tags)) return order.tags;
+  if (Array.isArray(order?.tags)) {
+    return order.tags;
+  }
 
   if (typeof order?.tags === "string") {
     return order.tags.split(",").map((tag) => tag.trim());
@@ -304,20 +313,24 @@ const hasAnyTag = (order, tagNames) => {
 };
 
 const isCodOrder = (order) => {
-  const values = [
-    ...safeArray(order?.paymentGatewayNames),
-    ...getTags(order),
-  ];
+  const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
 
-  return values.some((el) => {
+  const hasCodGateway = paymentGatewayNames.some((el) => {
     const value = normalize(el);
 
     return (
       value.includes("cod") ||
-      value.includes("cashondelivery") ||
-      value.includes("gokwikcod")
+      value.includes("cashondelivery")
     );
   });
+
+  const hasCodTag = hasAnyTag(order, [
+    "COD",
+    "COD-fallback-added",
+    "Gokwik_cod_fees",
+  ]);
+
+  return hasCodGateway || hasCodTag;
 };
 
 const isRefundInitiated = (order) => {
@@ -349,6 +362,7 @@ const isRefundCredited = (order) => {
     "REFUND_CREDITED",
   ]);
 };
+
 
 const isCancelledLostDamaged = (order) => {
   const currentStatus = getClickPostTracking(order)?.current_status;
@@ -391,9 +405,7 @@ const mapOrderRefundStatus = (order) => {
       (el) => Number(el?.totalRefunded?.amount || 0) > 0
     );
 
-    const refundCredited =
-      hasRefundAmount || (isRefundCredited(order) && refundAmount > 0);
-
+    const refundCredited = hasRefundAmount || (!isCod && isRefundCredited(order));
     const refundInitiated = isRefundInitiated(order);
     const partialRefund = isPartialRefund(order);
     const cancelledLostDamaged = isCancelledLostDamaged(order);
@@ -415,15 +427,11 @@ const mapOrderRefundStatus = (order) => {
     }
 
     if (cancelledLostDamaged && isCod) {
-      return `The order has been marked as ${
-        currentStatus || "cancelled"
-      } but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
+      return `The order has been marked as ${currentStatus || "cancelled"} but is not eligible for a refund as it is a Cash On Delivery order. If you have used cashback and it has not been credited back yet, please select an option to connect with our support team for assistance.`;
     }
 
     if (cancelledLostDamaged && !isCod) {
-      return `No refund has been initiated for this order yet. The order has been marked as ${
-        currentStatus || "cancelled"
-      } and is eligible for a refund. You may connect with our support team for assistance with the refund`;
+      return `No refund has been initiated for this order yet. The order has been marked as ${currentStatus || "cancelled"} and is eligible for a refund. You may connect with our support team for assistance with the refund`;
     }
 
     if (currentStatus === "delivered") {
@@ -457,8 +465,7 @@ const mapOrderRefundStatus = (order) => {
 
     return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account`;
   } catch (err) {
-    console.log("REFUND STATUS MAP ERROR =>", err.message);
-    return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account`;
+    throw new Error("Failed to map order refund status reason -->" + err.message);
   }
 };
 
@@ -512,9 +519,13 @@ const getCancellationStatusMessage = (order) => {
 
 const mapOrderCancellation = async (order) => {
   try {
+    const paymentGatewayNames = safeArray(order?.paymentGatewayNames);
     const isOrderCancelled = order?.cancelledAt;
     const fulfillments = safeArray(order?.fulfillments);
-    const isCod = isCodOrder(order);
+
+    const isCod = paymentGatewayNames.find(
+      (el) => el === "cash_on_delivery" || el === "Gokwik PPCOD"
+    );
 
     const orderDate = formatDate(order?.createdAt);
     const refundAmount =
@@ -537,6 +548,7 @@ const mapOrderCancellation = async (order) => {
     }
 
     const makeCancelRequest = await cancelOrder(order);
+
 
     if (!makeCancelRequest || makeCancelRequest?.success === false) {
       return `Failed to cancel your order. Reason: ${
@@ -562,6 +574,5 @@ export {
   cancelOrderByPhone,
   cancelOrderByOrderId,
   mapOrderStatus,
-  mapOrderRefundStatus,
   mapOrderCancellation,
 };
