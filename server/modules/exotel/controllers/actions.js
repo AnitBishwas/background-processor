@@ -405,7 +405,7 @@ const mapOrderRefundStatus = (order) => {
       (el) => Number(el?.totalRefunded?.amount || 0) > 0
     );
 
-    const refundCredited = hasRefundAmount || (isRefundCredited(order) && refundAmount > 0);
+    const refundCredited = hasRefundAmount || (!isCod && isRefundCredited(order));
     const refundInitiated = isRefundInitiated(order);
     const partialRefund = isPartialRefund(order);
     const cancelledLostDamaged = isCancelledLostDamaged(order);
