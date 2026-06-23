@@ -1,4 +1,5 @@
 import cashbackModels from "../../../../utils/cashbackModelProvider.js";
+import { createCashbackExtendedEventInMoe } from "../../moe/controllers/cashback.js";
 import { getOrderDetailsFromShopify } from "../helpers/index.js";
 import { createServerEvent } from "./index.js";
 
@@ -263,9 +264,56 @@ const handlePointsExpiryForEventsPurposes = async (pointsList) => {
   }
 };
 
+const handlePointsExtensionForEventsPurposes = async (pointsList) => {
+  const cashbackModel = await cashbackModels();
+  try {
+    for (let i = 0; i < pointsList.length; i++) {
+      const point = pointsList[i];
+      try {
+        const customerWallet = await cashbackModel.Wallet.findOne({
+          customerId: point.customerId,
+        }).lean();
+        const customerDetails = await cashbackModel.Customer.findOne({
+          customerId: point.customerId,
+        }).lean();
+        if (!customerWallet || !customerDetails) {
+          throw new Error(
+            "Customer wallet or customer details not found against customer id"
+          );
+        }
+        const structuredPayload = {
+          date: new Date().toISOString(),
+          timestamp: Date.parse(new Date().toISOString()),
+          pointId: point._id.toString(),
+          amount: point.amount,
+          user_phone: customerDetails.phone,
+          user_email: customerDetails.email,
+          wallet_balance: customerWallet.balance,
+          expiresOn: point.expiresOn,
+          refreshedOn: point.refreshed.date
+        };
+        createCashbackExtendedEventInMoe(point._id);
+        await createServerEvent({
+          eventName: "cashback_extended_v2",
+          params: { ...structuredPayload },
+        });
+      } catch (err) {
+        console.log(
+          "Failed to create point expiry event for point" + point._id
+        );
+      }
+    }
+  } catch (err) {
+    console.log(
+      "Failed to handle points expiry for event purposes reason -->" +
+        err.message
+    );
+  }
+};
 export {
   createCashbackAssignedEvent,
   createCashbackPendingAssignedEvent,
   createCashbackUtilisedEvent,
   handlePointsExpiryForEventsPurposes,
+  handlePointsExtensionForEventsPurposes
 };

@@ -28,7 +28,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
         sku: variantAdditionalData.sku,
         title: variantAdditionalData.product.title,
         tags: [],
-        tags_v2: variantAdditionalData.product?.tags.join(",") || "", 
+        tags_v2: variantAdditionalData.product?.tags.join(",") || "",
         variant: variant.variant_title,
         productId: variant.product_id,
         currentInventory: variantAdditionalData.inventoryQuantity,
@@ -109,12 +109,15 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
         variant: el.variant,
         currentInventory: el.currentInventory,
         tags: el.tags || "",
-        tags_v2: el.tags_v2, 
+        tags_v2: el.tags_v2,
       })),
       event_date: new Date().toISOString(),
       timestamp: Date.now(),
     };
-    console.dir({message:"creating custom purchase event",eventPayload},{depth: null});
+    console.dir(
+      { message: "creating custom purchase event", eventPayload },
+      { depth: null }
+    );
     const insertion = await insertBigqueryEvent(eventPayload);
   } catch (err) {
     throw new Error(

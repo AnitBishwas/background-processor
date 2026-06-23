@@ -15,6 +15,7 @@ const customerBlankPhoneSortingJob = new CronJob(
 
 const cashbackExpiryJob = new CronJob(
   "10 * * * *", // run every hour
+  // "* * * * *", // run every minute
   function () {
     handleCashbackExpiry();
     console.log("running cashback expiry");

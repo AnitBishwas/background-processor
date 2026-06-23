@@ -154,8 +154,42 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
   }
 };
 
+const createCashbackExtendedEventInMoe = async (pointId) =>{
+  const cashbackModel = await cashbackModels();
+  try{
+    if(!pointId){
+      throw new Error('Required params missing');
+    };
+    const point = await cashbackModel.Point.findById(pointId).lean();
+    if(!point){
+      throw new Error("No point found against provided point id");
+    }
+    const wallet = await cashbackModel.Wallet.findOne({customerId: point.customerId}).lean();
+    const customer = await cashbackModel.Customer.findOne({customerId: point.customerId}).lean();
+
+    if(!wallet || !customer){
+      throw new Error("Failed to get wallet and customer data against customer id");
+    }
+    const moePayload = {
+      customerPhone: customer.phone,
+      amount: point.amount,
+      expiresOn: point.expiresOn,
+      name: `${customer.firstName} ${customer.lastName}`,
+      email: customer.email,
+      balance: wallet.balance
+    };
+     await createMoengageEvent({
+      eventName: "cashback_extended_v2",
+      customerPhone: customer.phone,
+      params: { ...moePayload },
+    });
+  }catch(err){
+    console.log("Failed to create cashback extended event in MOE reason -->" + err.message);
+  }
+}
 export {
   handleCashbackUpdateForMoe,
   cashbackCreditedEventInMoe,
   handleCashbackRefundEventOnCancellationInMoe,
+  createCashbackExtendedEventInMoe
 };

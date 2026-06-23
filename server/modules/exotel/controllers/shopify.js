@@ -13,8 +13,10 @@ const normalisePhoneNumber = (phone) => {
 
   let digits = phone.toString().replace(/\D/g, "");
 
-  if (digits.length === 11 && digits.startsWith("0")) digits = digits.substring(1);
-  if (digits.length === 12 && digits.startsWith("91")) digits = digits.substring(2);
+  if (digits.length === 11 && digits.startsWith("0"))
+    digits = digits.substring(1);
+  if (digits.length === 12 && digits.startsWith("91"))
+    digits = digits.substring(2);
   if (digits.length !== 10) return null;
 
   return `+91${digits}`;
@@ -25,8 +27,10 @@ const normalisePhoneForMatch = (phone) => {
 
   let digits = phone.toString().replace(/\D/g, "");
 
-  if (digits.length === 11 && digits.startsWith("0")) digits = digits.substring(1);
-  if (digits.length === 12 && digits.startsWith("91")) digits = digits.substring(2);
+  if (digits.length === 11 && digits.startsWith("0"))
+    digits = digits.substring(1);
+  if (digits.length === 12 && digits.startsWith("91"))
+    digits = digits.substring(2);
   if (digits.length !== 10) return null;
 
   return digits;

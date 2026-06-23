@@ -17,10 +17,7 @@ const mapExotelRequests = async (req, res) => {
     const customerPhone = req.query.From;
 
     const digitsInserted = req.query.digits
-      ? req.query.digits.replace(
-          /[`~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\\/]/gi,
-          ""
-        )
+      ? req.query.digits.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\\/]/gi, "")
       : null;
 
     if (!appId) {

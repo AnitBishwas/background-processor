@@ -1,5 +1,5 @@
 import cashbackModels from "../../../../utils/cashbackModelProvider.js";
-import { handlePointsExpiryForEventsPurposes } from "../../events/controllers/cashbackServerEvents.js";
+import { handlePointsExpiryForEventsPurposes, handlePointsExtensionForEventsPurposes } from "../../events/controllers/cashbackServerEvents.js";
 
 const getStartOfTodayIST = () => {
   const IST_TZ = "Asia/Kolkata";
@@ -32,24 +32,41 @@ const handleCashbackExpiry = async ({ batchSize = 200 } = {}) => {
   const Point = cashbackModel.Point;
   const Wallet = cashbackModel.Wallet;
   const Transaction = cashbackModel.Transaction;
+  const shop =
+    process.env.NODE_ENV == "dev"
+      ? "swiss-local-dev.myshopify.com"
+      : "swiss-beauty-dev.myshopify.com";
+  const storeSettings = await cashbackModel.Settings.findOne({ shop }).lean();
 
   const cutoffIST = getStartOfTodayIST();
   let processed = 0;
 
   try {
     let expiredPointsList = [];
+    let extensionPointsList = [];
+
+    //handles purely points expiry
     while (true) {
-      const candidates = await Point.find(
-        {
-          status: "ready",
-          expiresOn: { $lt: cutoffIST },
-        },
-        { _id: 1, walletId: 1, customerId: 1, amount: 1, expiresOn: 1 }
-      )
+      const filters = {
+        status: "ready",
+        expiresOn: { $lt: cutoffIST },
+      };
+      if (storeSettings.extension?.enable) {
+        filters["$or"] = [
+          { "refreshed.state": true },
+          { "refreshed.state": { $exists: true } },
+        ];
+      }
+      const candidates = await Point.find(filters, {
+        _id: 1,
+        walletId: 1,
+        customerId: 1,
+        amount: 1,
+        expiresOn: 1,
+      })
         .sort({ expiresOn: 1, _id: 1 })
         .limit(batchSize)
         .lean();
-
       if (!candidates.length) break;
 
       for (const p of candidates) {
@@ -103,9 +120,58 @@ const handleCashbackExpiry = async ({ batchSize = 200 } = {}) => {
       }
       if (candidates.length < batchSize) break;
     }
+    // handles purely cashback extension
+    if (
+      storeSettings.extension?.enable &&
+      storeSettings.extension?.period > 0
+    ) {
+      const filters = {
+        status: "ready",
+        expiresOn: { $lt: cutoffIST },
+        $or: [
+          { "refreshed.state": false },
+          { "refreshed.state": { $exists: false } },
+        ],
+      };
+      const candidates = await Point.find(filters, {
+        _id: 1,
+        walletId: 1,
+        customerId: 1,
+        amount: 1,
+        expiresOn: 1,
+      })
+        .sort({ expiresOn: 1, _id: 1 })
+        .lean();
+      for (const p of candidates) {
+        const newExpiryDate = new Date(
+          new Date(p.expiresOn).getTime() +
+            storeSettings.extension?.period * 24 * 60 * 60 * 1000
+        );
+        const claimed = await Point.findOneAndUpdate(
+          { _id: p._id, status: "ready" },
+          {
+            $set: {
+              refreshed: {
+                state: true,
+                date: new Date(),
+              },
+              expiresOn: newExpiryDate,
+            },
+          },
+          { new: true }
+        ).lean();
+        if (claimed) {
+          extensionPointsList.push(claimed);
+        }
+      }
+    }
     if (expiredPointsList.length > 0) {
       // handle points expiry server event
       handlePointsExpiryForEventsPurposes(expiredPointsList);
+    }
+    if (extensionPointsList.length > 0) {
+      // handle points extension server events
+      handlePointsExtensionForEventsPurposes(extensionPointsList);
     }
     return { success: true, processed, cutoffIST };
   } catch (err) {

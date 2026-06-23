@@ -59,7 +59,9 @@ const getEdd = (trackingData) =>
   null;
 
 const getClickPostDescription = (order) =>
-  normalize(getClickPostData(order)?.latest_status?.clickpost_status_description);
+  normalize(
+    getClickPostData(order)?.latest_status?.clickpost_status_description
+  );
 
 const isWithin30Minutes = (order) => {
   if (!order?.createdAt) return false;
@@ -318,10 +320,7 @@ const isCodOrder = (order) => {
   const hasCodGateway = paymentGatewayNames.some((el) => {
     const value = normalize(el);
 
-    return (
-      value.includes("cod") ||
-      value.includes("cashondelivery")
-    );
+    return value.includes("cod") || value.includes("cashondelivery");
   });
 
   const hasCodTag = hasAnyTag(order, [
@@ -362,7 +361,6 @@ const isRefundCredited = (order) => {
     "REFUND_CREDITED",
   ]);
 };
-
 
 const isCancelledLostDamaged = (order) => {
   const currentStatus = getClickPostTracking(order)?.current_status;
@@ -405,7 +403,8 @@ const mapOrderRefundStatus = (order) => {
       (el) => Number(el?.totalRefunded?.amount || 0) > 0
     );
 
-    const refundCredited = hasRefundAmount || (!isCod && isRefundCredited(order));
+    const refundCredited =
+      hasRefundAmount || (!isCod && isRefundCredited(order));
     const refundInitiated = isRefundInitiated(order);
     const partialRefund = isPartialRefund(order);
     const cancelledLostDamaged = isCancelledLostDamaged(order);
@@ -440,7 +439,10 @@ const mapOrderRefundStatus = (order) => {
         : `No Refund has been initiated for this order as this order was marked delivered.`;
     }
 
-    if (currentStatus === "failed-delivery" || currentStatus === "undelivered") {
+    if (
+      currentStatus === "failed-delivery" ||
+      currentStatus === "undelivered"
+    ) {
       return `No refund has been initiated yet for this order, as the order is marked Undelivered. Please wait for it to be marked Returned (RTO). Once updated, the refund will be initiated within 24 to 48 hours.`;
     }
 
@@ -465,7 +467,9 @@ const mapOrderRefundStatus = (order) => {
 
     return `Please note, for prepaid orders, it usually takes 5-7 working days for the refund to be credited in your source account`;
   } catch (err) {
-    throw new Error("Failed to map order refund status reason -->" + err.message);
+    throw new Error(
+      "Failed to map order refund status reason -->" + err.message
+    );
   }
 };
 
@@ -528,8 +532,7 @@ const mapOrderCancellation = async (order) => {
     );
 
     const orderDate = formatDate(order?.createdAt);
-    const refundAmount =
-      order?.currentTotalPriceSet?.shopMoney?.amount || null;
+    const refundAmount = order?.currentTotalPriceSet?.shopMoney?.amount || null;
 
     if (isOrderCancelled && isCod) {
       return `Your cash on delivery order placed on ${orderDate} is already cancelled.`;
@@ -548,7 +551,6 @@ const mapOrderCancellation = async (order) => {
     }
 
     const makeCancelRequest = await cancelOrder(order);
-
 
     if (!makeCancelRequest || makeCancelRequest?.success === false) {
       return `Failed to cancel your order. Reason: ${
