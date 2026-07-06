@@ -326,7 +326,6 @@ const isCodOrder = (order) => {
   const hasCodTag = hasAnyTag(order, [
     "COD",
     "COD-fallback-added",
-    "Gokwik_cod_fees",
   ]);
 
   return hasCodGateway || hasCodTag;
@@ -380,6 +379,7 @@ const isCancelledLostDamaged = (order) => {
       "cancel",
       "customer-cancel",
       "customer_cancel",
+      "Ivr_cancel"
     ])
   );
 };
