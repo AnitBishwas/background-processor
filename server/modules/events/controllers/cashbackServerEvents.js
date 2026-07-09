@@ -290,7 +290,7 @@ const handlePointsExtensionForEventsPurposes = async (pointsList) => {
           user_email: customerDetails.email,
           wallet_balance: customerWallet.balance,
           expiresOn: point.expiresOn,
-          refreshedOn: point.refreshed.date
+          refreshedOn: point.refreshed.date,
         };
         createCashbackExtendedEventInMoe(point._id);
         await createServerEvent({
@@ -315,5 +315,5 @@ export {
   createCashbackPendingAssignedEvent,
   createCashbackUtilisedEvent,
   handlePointsExpiryForEventsPurposes,
-  handlePointsExtensionForEventsPurposes
+  handlePointsExtensionForEventsPurposes,
 };
