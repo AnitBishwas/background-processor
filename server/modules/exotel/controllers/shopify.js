@@ -1,5 +1,6 @@
 import { getTrackingStatusFromClickPost } from "./clickpost.js";
 import clientProvider from "../../../../utils/clientProvider.js";
+import { handleCashbackCancellation } from "../../cashback/controllers/index.js";
 
 const shop =
   process.env.NODE_ENV === "dev"
@@ -75,6 +76,7 @@ const orderNodeFields = `
   tags
   confirmed
   paymentGatewayNames
+  displayFinancialStatus
   shippingAddress {
     phone
   }
@@ -82,6 +84,7 @@ const orderNodeFields = `
     phone
   }
   customer {
+    id
     phone
     defaultPhoneNumber {
       phoneNumber
@@ -413,16 +416,15 @@ const cancelOrder = async (order) => {
       }
     `;
 
-    const paymentGatewayNames = safeArray(order?.paymentGatewayNames).map(
-      (el) => String(el || "").toLowerCase()
-    );
-
-    const isCod = paymentGatewayNames.some(
-      (el) =>
-        el.includes("cash_on_delivery") ||
-        el.includes("cash on delivery") ||
-        el.includes("cod") ||
-        el.includes("gokwik")
+    // Senior's call, confirmed against Shopify's own docs: when nothing was
+    // captured (true COD), Shopify just voids the payment if you request
+    // originalPaymentMethodsRefund - it doesn't error and doesn't wrongly
+    // refund money that was never taken. So we always request it here; no
+    // need to branch the mutation input on COD vs prepaid.
+    // isPaid is still computed below, only to decide which tag to add
+    // afterwards (so ops can tell what actually happened).
+    const isPaid = ["PAID", "PARTIALLY_PAID", "PARTIALLY_REFUNDED"].includes(
+      order?.displayFinancialStatus
     );
 
     const variables = {
@@ -431,11 +433,9 @@ const cancelOrder = async (order) => {
       restock: true,
       reason: "CUSTOMER",
       staffNote: "Order cancelled via IVR",
-      refundMethod: isCod
-        ? null
-        : {
-            originalPaymentMethodsRefund: true,
-          },
+      refundMethod: {
+        originalPaymentMethodsRefund: true,
+      },
     };
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const { data, errors } = await client.request(query, { variables });
@@ -458,11 +458,61 @@ const cancelOrder = async (order) => {
       };
     }
 
-    const tagResponse = await addOrderTags(order.id, ["Ivr_cancel"]);
+    // Reverse any cashback used on this order back to the customer's wallet.
+    // Runs regardless of isPaid/COD - a COD order can still have used
+    // cashback at checkout, and that always needs to go back to the wallet.
+    // A failure here must never fail the overall cancellation - the order is
+    // already cancelled in Shopify by this point.
+    let cashbackReversal = { success: true, refundableCreditedToWallet: 0 };
+    try {
+      const numericOrderId = Number(
+        String(order.id).replace("gid://shopify/Order/", "")
+      );
+      const numericCustomerId = order?.customer?.id
+        ? Number(String(order.customer.id).replace("gid://shopify/Customer/", ""))
+        : null;
+
+      const result = await handleCashbackCancellation({
+        id: numericOrderId,
+        order_number: order?.name ? order.name.replace("#", "") : undefined,
+        customer: { id: numericCustomerId },
+      });
+
+      cashbackReversal = {
+        success: true,
+        refundableCreditedToWallet: result?.refundableCreditedToWallet || 0,
+      };
+    } catch (err) {
+      cashbackReversal = { success: false, error: err.message };
+      console.error(
+        "Cashback reversal failed for order",
+        order?.name,
+        "-->",
+        err.message
+      );
+    }
+
+    // Tags: base cancellation tag always, plus a distinct tag depending on
+    // what kind of refund actually happened, so ops can filter in Shopify
+    // admin without opening every order.
+    const tags = ["Ivr_cancel"];
+
+    if (isPaid) {
+      tags.push("Refund_Initiated"); // prepaid original-payment refund triggered
+    }
+
+    if (cashbackReversal.refundableCreditedToWallet > 0) {
+      tags.push("Cashback_Refunded"); // COD (or prepaid) cashback credited back to wallet
+    }
+
+    const tagResponse = await addOrderTags(order.id, tags);
+
     return {
       success: true,
       job: data?.orderCancel?.job || null,
       tagResponse,
+      cashbackReversal,
+      refundInitiated: isPaid,
     };
   } catch (err) {
     return {
