@@ -5,9 +5,7 @@ import { handleCashbackCancellation } from "../../cashback/controllers/index.js"
 import { createMoengageEvent } from "../../moe/helpers/index.js";
 
 /**
- * ============================================================================
- *  SAFETY: this file is only ever allowed to touch the dev store.
- * ============================================================================
+ *  this file is only ever allowed to touch the dev store.
  */
 const ALLOWED_DEV_SHOPS = ["swiss-local-dev.myshopify.com"];
 const CONFIGURED_SHOP = process.env.RTO_REFUND_SHOP;
