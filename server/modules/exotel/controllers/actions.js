@@ -393,19 +393,20 @@ const mapOrderRefundStatus = (order) => {
   try {
     const tracking = getClickPostTracking(order);
     const currentStatus = tracking?.current_status;
-    const refunds = safeArray(order?.refunds);
 
     const refundAmount = getRefundAmount(order);
     const isCod = isCodOrder(order);
     const deliveredDate = getDeliveredDate(order);
 
-    const hasRefundAmount = refunds.some(
-      (el) => Number(el?.totalRefunded?.amount || 0) > 0
-    );
-
-    // const refundCredited =
-    //   hasRefundAmount || (!isCod && isRefundCredited(order));
-    const refundCredited = (!isCod && hasRefundAmount) || isRefundCredited(order);
+    // Only the explicit "Refund_credited" tag means money has actually landed
+    // in the customer's account/bank statement. A Shopify refund record
+    // existing (order.refunds) is NOT proof of that - Shopify creates that
+    // record as soon as a refund is requested/initiated, which can be well
+    // before the bank/gateway actually settles it, and it also fires for
+    // cashback-wallet ledger reversals which aren't a bank credit at all.
+    // So we never infer "credited" from refunds/hasRefundAmount - only from
+    // the tag your ops/webhook flow sets once settlement is confirmed.
+    const refundCredited = isRefundCredited(order);
 
     const refundInitiated = isRefundInitiated(order);
     const partialRefund = isPartialRefund(order);
