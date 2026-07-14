@@ -32,8 +32,9 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
       name: customer.firstName + " " + customer.lastName,
       amount: amount,
       balance: wallet.balance,
-      orderId: orderId
+      refunded_order: orderId
     };
+    console.log("payload data for moengage order cancel refund event",moePayload);
     await createMoengageEvent({
       eventName: "cashback_cancel_refund",
       customerPhone: customer.phone,
