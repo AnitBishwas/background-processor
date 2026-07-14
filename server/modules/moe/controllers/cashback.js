@@ -11,12 +11,10 @@ import {
  */
 const handleCashbackRefundEventOnCancellationInMoe = async (
   amount,
-  customerId
+  customerId,
+  orderId
 ) => {
-  console.log("creating cancellation refund event in moe", {
-    amount,
-    customerId,
-  });
+
   if (amount <= 0) {
     console.log(
       "cashback_cancel_refund not passed to moe as the amount is zero"
@@ -34,6 +32,7 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
       name: customer.firstName + " " + customer.lastName,
       amount: amount,
       balance: wallet.balance,
+      orderId: orderId
     };
     await createMoengageEvent({
       eventName: "cashback_cancel_refund",
