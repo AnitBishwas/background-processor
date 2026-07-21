@@ -164,7 +164,7 @@ const createReviewFromRow = async (
         hasImages: false,
         hasVideo: false,
         mediaCount: 0,
-        verifiedBadge:true,
+        verifiedBadge: true,
         sortIndex,
         ...(curated && { approvedAt: new Date(), publishedAt: new Date() }),
         ...(reviewDate && { createdAt: reviewDate }),

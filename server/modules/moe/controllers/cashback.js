@@ -14,7 +14,6 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
   customerId,
   orderId
 ) => {
-
   if (amount <= 0) {
     console.log(
       "cashback_cancel_refund not passed to moe as the amount is zero"
@@ -32,9 +31,12 @@ const handleCashbackRefundEventOnCancellationInMoe = async (
       name: customer.firstName + " " + customer.lastName,
       amount: amount,
       balance: wallet.balance,
-      refunded_order: orderId
+      refunded_order: orderId,
     };
-    console.log("payload data for moengage order cancel refund event",moePayload);
+    console.log(
+      "payload data for moengage order cancel refund event",
+      moePayload
+    );
     await createMoengageEvent({
       eventName: "cashback_cancel_refund",
       customerPhone: customer.phone,
@@ -154,21 +156,27 @@ const cashbackCreditedEventInMoe = async (pointId, shop) => {
   }
 };
 
-const createCashbackExtendedEventInMoe = async (pointId) =>{
+const createCashbackExtendedEventInMoe = async (pointId) => {
   const cashbackModel = await cashbackModels();
-  try{
-    if(!pointId){
-      throw new Error('Required params missing');
-    };
+  try {
+    if (!pointId) {
+      throw new Error("Required params missing");
+    }
     const point = await cashbackModel.Point.findById(pointId).lean();
-    if(!point){
+    if (!point) {
       throw new Error("No point found against provided point id");
     }
-    const wallet = await cashbackModel.Wallet.findOne({customerId: point.customerId}).lean();
-    const customer = await cashbackModel.Customer.findOne({customerId: point.customerId}).lean();
+    const wallet = await cashbackModel.Wallet.findOne({
+      customerId: point.customerId,
+    }).lean();
+    const customer = await cashbackModel.Customer.findOne({
+      customerId: point.customerId,
+    }).lean();
 
-    if(!wallet || !customer){
-      throw new Error("Failed to get wallet and customer data against customer id");
+    if (!wallet || !customer) {
+      throw new Error(
+        "Failed to get wallet and customer data against customer id"
+      );
     }
     const moePayload = {
       customerPhone: customer.phone,
@@ -176,20 +184,22 @@ const createCashbackExtendedEventInMoe = async (pointId) =>{
       expiresOn: point.expiresOn,
       name: `${customer.firstName} ${customer.lastName}`,
       email: customer.email,
-      balance: wallet.balance
+      balance: wallet.balance,
     };
-     await createMoengageEvent({
+    await createMoengageEvent({
       eventName: "cashback_extended_v2",
       customerPhone: customer.phone,
       params: { ...moePayload },
     });
-  }catch(err){
-    console.log("Failed to create cashback extended event in MOE reason -->" + err.message);
+  } catch (err) {
+    console.log(
+      "Failed to create cashback extended event in MOE reason -->" + err.message
+    );
   }
-}
+};
 export {
   handleCashbackUpdateForMoe,
   cashbackCreditedEventInMoe,
   handleCashbackRefundEventOnCancellationInMoe,
-  createCashbackExtendedEventInMoe
+  createCashbackExtendedEventInMoe,
 };

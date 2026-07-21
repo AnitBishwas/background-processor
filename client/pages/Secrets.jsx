@@ -27,6 +27,11 @@ const MODULES = [
     value: "exotel",
     prefix: "/public/exotel",
   },
+  {
+    label: "Clickpost Public API",
+    value: "clickpost",
+    prefix: "/public/clickpost",
+  },
   // add more modules...
 ];
 

@@ -143,16 +143,16 @@
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CASHBACK_PROD_DB::"
         },
         {
-          "name":"REVIEW_PROD_DB",
+          "name": "REVIEW_PROD_DB",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:REVIEW_PROD_DB::"
         },
         {
-          "name":"REVIEW_AWS_REGION",
-          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:REVIEW_AWS_REGION::" 
+          "name": "REVIEW_AWS_REGION",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:REVIEW_AWS_REGION::"
         },
         {
-          "name":"REVIEW_AWS_S3_BUCKET",
-          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:REVIEW_AWS_S3_BUCKET::"  
+          "name": "REVIEW_AWS_S3_BUCKET",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:REVIEW_AWS_S3_BUCKET::"
         },
         {
           "name": "CLICKPOST_USERNAME",

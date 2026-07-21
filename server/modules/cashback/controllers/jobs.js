@@ -1,5 +1,8 @@
 import cashbackModels from "../../../../utils/cashbackModelProvider.js";
-import { handlePointsExpiryForEventsPurposes, handlePointsExtensionForEventsPurposes } from "../../events/controllers/cashbackServerEvents.js";
+import {
+  handlePointsExpiryForEventsPurposes,
+  handlePointsExtensionForEventsPurposes,
+} from "../../events/controllers/cashbackServerEvents.js";
 
 const getStartOfTodayIST = () => {
   const IST_TZ = "Asia/Kolkata";

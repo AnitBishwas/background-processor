@@ -323,10 +323,7 @@ const isCodOrder = (order) => {
     return value.includes("cod") || value.includes("cashondelivery");
   });
 
-  const hasCodTag = hasAnyTag(order, [
-    "COD",
-    "COD-fallback-added",
-  ]);
+  const hasCodTag = hasAnyTag(order, ["COD", "COD-fallback-added"]);
 
   return hasCodGateway || hasCodTag;
 };
@@ -379,7 +376,7 @@ const isCancelledLostDamaged = (order) => {
       "cancel",
       "customer-cancel",
       "customer_cancel",
-      "Ivr_cancel"
+      "Ivr_cancel",
     ])
   );
 };

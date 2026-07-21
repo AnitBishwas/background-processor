@@ -19,6 +19,7 @@ import pLimit from "p-limit";
 import { handleReviewMediaUpload } from "../../modules/reviews/controllers/media.js";
 import { handleReviewUploadJob } from "../../modules/reviews/controllers/uploadCsv.js";
 import { handleReviewSubmission } from "../../modules/reviews/controllers/index.js";
+import { handleClickpostRtoOrder } from "../../modules/clickpost/controllers/index.js";
 
 // ["ORDER_CREATE","CASHBACK_PENDING_ASSIGNED","CASHBACK_UTILISED","ORDER_CANCEL","CASHBACK_CANCEL","ORDER_DELIVERED","CASHBACK_ASSIGN","ORDER_REFUND","CASHBACK_REFUND","CASHBACK_BULK_DISTRIBUTION","CASHBACK_Manual_DISTRIBUTION"]
 const sqs = new AWS.SQS();
@@ -158,7 +159,6 @@ const handleS3Records = async (records) => {
 };
 
 const handleTopicMessage = async (topic, payload, meta = {}) => {
-  console.log("passed to handle topic message");
   switch (topic) {
     case "ORDER_CREATE":
       await createCustomPurchaseEventInBiqQuery(payload.shop, payload);
@@ -220,6 +220,10 @@ const handleTopicMessage = async (topic, payload, meta = {}) => {
       break;
     case "REVIEW_SUBMITTED":
       await handleReviewSubmission(payload.job);
+      break;
+    case "CLICKPOST_RTO_ORDER":
+      await handleClickpostRtoOrder(payload);
+      console.log("processed clickpost rto order ✅");
       break;
     default:
       const err = new Error(`Unrecognised topic: "${topic}"`);
@@ -380,4 +384,15 @@ const pollSQSQueue = async () => {
     }
   }
 };
-export { pollSQSQueue };
+const sendToSQS = async (payload) => {
+  try {
+    const params = {
+      QueueUrl: process.env.SQS_URL,
+      MessageBody: JSON.stringify(payload),
+    };
+    return sqs.sendMessage(params).promise();
+  } catch (err) {
+    throw new Error("Failed to send message to SQS reason -->" + err.message);
+  }
+};
+export { pollSQSQueue, sendToSQS };

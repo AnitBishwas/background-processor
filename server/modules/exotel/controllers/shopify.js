@@ -469,7 +469,9 @@ const cancelOrder = async (order) => {
         String(order.id).replace("gid://shopify/Order/", "")
       );
       const numericCustomerId = order?.customer?.id
-        ? Number(String(order.customer.id).replace("gid://shopify/Customer/", ""))
+        ? Number(
+            String(order.customer.id).replace("gid://shopify/Customer/", "")
+          )
         : null;
 
       const result = await handleCashbackCancellation({
