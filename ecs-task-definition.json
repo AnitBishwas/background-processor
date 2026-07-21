@@ -166,10 +166,10 @@
           "name": "RTO_REPORT_AWS_BUCKET",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:RTO_REPORT_AWS_BUCKET::"
         },
-       {
+        {
           "name": "AWS_S3_ACCESS_KEY",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_S3_ACCESS_KEY::"
-        }, 
+        },
         {
           "name": "AWS_S3_SECRET_KEY",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_S3_SECRET_KEY::"
@@ -197,7 +197,9 @@
   "networkMode": "awsvpc",
   "volumes": [],
   "placementConstraints": [],
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "1024",
   "memory": "3072",
   "runtimePlatform": {
