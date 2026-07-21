@@ -161,6 +161,18 @@
         {
           "name": "CLICKPOST_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CLICKPOST_API_KEY::"
+        },
+        {
+          "name": "RTO_REPORT_AWS_BUCKET",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:RTO_REPORT_AWS_BUCKET::"
+        },
+       {
+          "name": "AWS_S3_ACCESS_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_S3_ACCESS_KEY::"
+        }, 
+        {
+          "name": "AWS_S3_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_S3_SECRET_KEY::"
         }
       ],
       "environmentFiles": [],
