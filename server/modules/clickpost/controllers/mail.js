@@ -8,7 +8,7 @@ const ses = new SESClient({
   },
 });
 
-const RECIPIENTS = ["anit.biswas@swissbeauty.in"];
+const RECIPIENTS = ["anit.biswas@swissbeauty.in","divyani.singh@swissbeauty.in","ankit.singh@swissbeauty.in","abheet.jamwal@swissbeauty.in"];
 
 const sendSubscribedEmailRtoReport = async ({ dateStr, s3Url, summary }) => {
   try {
