@@ -50,7 +50,7 @@ const streamCsvFileToS3 = async (cursor, dateStr) => {
   try {
     const s3Key = `reports/${dateStr}.csv`;
     const CSV_HEADERS =
-      'orderId,createdAt,customerName,phone,email,refundAmount,isCod,isPrepaid,cashbackUsed\n';
+      "orderId,createdAt,customerName,phone,email,refundAmount,isCod,isPrepaid,cashbackUsed\n";
     const passThrough = new PassThrough();
 
     const upload = new Upload({
@@ -59,7 +59,7 @@ const streamCsvFileToS3 = async (cursor, dateStr) => {
         Bucket: process.env.RTO_REPORT_AWS_BUCKET,
         Key: s3Key,
         Body: passThrough,
-        ContentType: 'text/csv',
+        ContentType: "text/csv",
         ContentDisposition: `attachment; filename="${dateStr}.csv"`,
       },
     });
@@ -78,7 +78,10 @@ const streamCsvFileToS3 = async (cursor, dateStr) => {
       },
     });
 
-    await Promise.all([pipeline(cursor, csvTransform, passThrough), upload.done()]);
+    await Promise.all([
+      pipeline(cursor, csvTransform, passThrough),
+      upload.done(),
+    ]);
 
     return { s3Key, summary };
   } catch (err) {
@@ -87,31 +90,31 @@ const streamCsvFileToS3 = async (cursor, dateStr) => {
 };
 
 const escapeCSV = (value) => {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) return "";
   const str = String(value);
-  return str.includes(',') || str.includes('"') || str.includes('\n')
+  return str.includes(",") || str.includes('"') || str.includes("\n")
     ? `"${str.replace(/"/g, '""')}"`
     : str;
 };
 
 const toRow = (order) => {
   const c = order.customer || {};
-  const customerName = [c.firstName, c.lastName].filter(Boolean).join(' ');
+  const customerName = [c.firstName, c.lastName].filter(Boolean).join(" ");
 
   return (
     [
       order.orderName,
-      order.orderDate ? new Date(order.orderDate).toISOString() : '',
+      order.orderDate ? new Date(order.orderDate).toISOString() : "",
       customerName,
-      c.phone || '',
-      c.email || '',
-      order.refund?.total ?? '',
+      c.phone || "",
+      c.email || "",
+      order.refund?.total ?? "",
       order.isCod,
       order.isPrepaid,
       order.cashbackUtilised ?? 0,
     ]
       .map(escapeCSV)
-      .join(',') + '\n'
+      .join(",") + "\n"
   );
 };
 

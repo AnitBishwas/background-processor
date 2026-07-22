@@ -67,11 +67,17 @@ const punchCancelOrderIntoDb = async (order, payload) => {
       orderDate: order.createdAt,
       orderName: order.name.replace("#", ""),
       clickPostPayload: JSON.stringify(payload),
-      isCod: order.transactions.find((el) => el.gateway == "cash_on_delivery")
+      isCod: order.transactions.find(
+        (el) =>
+          el.gateway == "cash_on_delivery" ||
+          el.gateway == "Cash on Delivery (COD)"
+      )
         ? true
         : false,
       isPrepaid: !order.transactions.find(
-        (el) => el.gateway == "cash_on_delivery"
+        (el) =>
+          el.gateway == "cash_on_delivery" ||
+          el.gateway == "Cash on Delivery (COD)"
       )
         ? true
         : false,

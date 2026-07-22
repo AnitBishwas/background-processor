@@ -197,9 +197,7 @@
   "networkMode": "awsvpc",
   "volumes": [],
   "placementConstraints": [],
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
   "memory": "3072",
   "runtimePlatform": {

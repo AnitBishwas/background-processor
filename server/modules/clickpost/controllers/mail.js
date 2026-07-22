@@ -8,7 +8,14 @@ const ses = new SESClient({
   },
 });
 
-const RECIPIENTS = ["anit.biswas@swissbeauty.in","divyani.singh@swissbeauty.in","ankit.singh@swissbeauty.in","abheet.jamwal@swissbeauty.in"];
+const RECIPIENTS = [
+  "anit.biswas@swissbeauty.in",
+  "divyani.singh@swissbeauty.in",
+  "ankit.singh@swissbeauty.in",
+  "abheet.jamwal@swissbeauty.in",
+  "amit.yadav@swissbeauty.in",
+  "aman.nigam@swissbeauty.in",
+];
 
 const sendSubscribedEmailRtoReport = async ({ dateStr, s3Url, summary }) => {
   try {
@@ -49,7 +56,7 @@ const sendSubscribedEmailRtoReport = async ({ dateStr, s3Url, summary }) => {
 
     await ses.send(
       new SendEmailCommand({
-        Source: 'anit.biswas@swissbeauty.in',
+        Source: "anit.biswas@swissbeauty.in",
         Destination: { ToAddresses: RECIPIENTS },
         Message: {
           Subject: { Data: `RTO Report — ${dateStr}`, Charset: "UTF-8" },
