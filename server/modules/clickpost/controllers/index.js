@@ -1,5 +1,6 @@
 import clientProvider from "../../../../utils/clientProvider.js";
 import RtoOrder from "../../../../utils/models/RtoOrder.js";
+import { createOrderRtoEventInBigQuery } from "../../../analytics/bigQuery.js";
 import { createMoengageEvent } from "../../moe/helpers/index.js";
 import {
   markOrderCancelled,
@@ -35,7 +36,10 @@ const handleClickpostRtoOrder = async (payload) => {
     const cancellOrder = await markOrderCancelled(client, orderId);
     const orderDetails = await retrieveCancellOrderDetails(client, orderId);
     const punchedData = await punchCancelOrderIntoDb(orderDetails, payload);
-    const moengageEvent = await createMoengageRtoEvent(punchedData);
+    const [moengageEvent,bigqueryEvent] = await Promise.all([
+      createMoengageRtoEvent(punchedData),
+      createOrderRtoEventInBigQuery(orderDetails)
+    ]);
   } catch (err) {
     throw new Error(
       "Failed to handle clickpost Rto order reason -->" + err.message

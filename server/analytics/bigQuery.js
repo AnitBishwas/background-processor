@@ -248,6 +248,104 @@ const createOrderCancelledEventInBigQuery = async (shop, payload) => {
     );
   }
 };
+
+/**
+ * @param {*} payload
+ */
+const createOrderRtoEventInBigQuery = async (payload) => {
+  try {
+    console.log("Creating rto analytics entry 👉");
+    const structuredData = {
+      orderId: payload.name,
+      shopifyOrderId: payload.id.replace("gid://shopify/Order/", ""),
+      createdAt: payload.createdAt,
+      couponCode: payload.discountCode,
+      couponValue: Number(payload.totalDiscountsSet.presentmentMoney.amount) || 0,
+      totalPrice: Number(payload.currentTotalPriceSet.presentmentMoney.amount) || 0,
+      shippingPrice:
+        Number(payload.totalShippingPriceSet.presentmentMoney.amount) || 0,
+      subTotalPrice: payload.totalDiscountsSet.presentmentMoney.amount
+        ? Number(payload.currentTotalPriceSet.presentmentMoney.amount) +
+          Number(payload.totalDiscountsSet.presentmentMoney.amount) -
+          (Number(payload.totalShippingPriceSet.presentmentMoney.amount) || 0)
+        : Number(payload.currentTotalPriceSet.presentmentMoney.amount),
+      isSwissCashUtilised: payload.tags
+        .map((el) => el.trim())
+        .find((el) => el.toLowerCase() == "swiss cash")
+        ? true
+        : false,
+      utmSource:
+        payload.customAttributes.find((el) => el.key == "utm_source")?.value ||
+        "",
+      utmMedium:
+        payload.customAttributes.find((el) => el.key == "utm_medium")?.value ||
+        "",
+      utmCampaign:
+        payload.customAttributes.find((el) => el.key == "utm_campaign")
+          ?.value || "",
+      landingPage:
+        payload.customAttributes.find((el) => el.key == "full_url")?.value ||
+        "",
+      cod: payload.tags
+        .map((el) => el.trim())
+        .find((el) => el.toLowerCase() == "cod")
+        ? true
+        : false,
+      customerName: payload.customer ? payload.customer.displayName : null,
+      customerPhone: payload.customer?.defaultPhoneNumber?.phoneNumber || null,
+      customerEmail:
+        payload.customer?.defaultEmailAddress?.emailAddress || null,
+      lineItems: payload.lineItems.map((el) => ({
+        id:
+          el?.variant?.id?.replace("gid://shopify/ProductVariant/", "") ||
+          null,
+        quantity: el.quantity || 0,
+        ean: el?.variant?.barcode || null,
+        mrp: Number(el.variant?.compareAtPrice || 0),
+        price: Number(el?.variant?.price || 0),
+        sku: el.variant?.sku,
+        variant: el.variant?.title || "",
+        title: el.variant?.product?.title || "",
+        tags_v2: el?.product?.tags,
+        productId:
+          el?.variant?.product.id.replace("gid://shopify/Product/", "") ||
+          "",
+      })),
+    };
+    let excludeKeys = new Set(["lineItems"]);
+    let eventParams = Object.entries(structuredData)
+      .filter(([key]) => !excludeKeys.has(key))
+      .map(([key, value]) => ({
+        key,
+        value: convertValue(value),
+      }));
+    let eventPayload = {
+      event_name: "rto_order",
+      event_params: eventParams,
+      items: structuredData.lineItems.map((el) => ({
+        variantId: el.id + "",
+        quantity: el.quantity,
+        ean: el.ean,
+        mrp: el.mrp,
+        price: el.price,
+        sku: el.sku,
+        title: el.title,
+        productId: el.productId,
+        variant: el.variant,
+        currentInventory: el.currentInventory,
+        tags_v2: el.tags_v2,
+      })),
+      event_date: new Date().toISOString(),
+      timestamp: Date.now(),
+    };
+    const insertion = await insertBigqueryEvent(eventPayload);
+  } catch (err) {
+    throw new Error(
+      "Failed to create custom purchase event in bigquery reason -->" +
+        err.message
+    );
+  }
+};
 function convertValue(value) {
   if (typeof value === "string") {
     return { string_value: value };
@@ -265,4 +363,5 @@ function convertValue(value) {
 export {
   createCustomPurchaseEventInBiqQuery,
   createOrderCancelledEventInBigQuery,
+  createOrderRtoEventInBigQuery,
 };

@@ -7,6 +7,13 @@ const retrieveCancellOrderDetails = async (client, orderId) => {
             id
             name
             createdAt
+            discountCode
+            tags
+            currentTotalPriceSet{
+              presentmentMoney{
+                amount
+              } 
+            }
             transactions(first:10){
                 gateway
                 amountSet{
@@ -19,6 +26,20 @@ const retrieveCancellOrderDetails = async (client, orderId) => {
                 presentmentMoney{
                     amount
                 }
+            }
+            totalDiscountsSet{
+              presentmentMoney{
+                amount
+              } 
+            }
+            totalShippingPriceSet{
+              presentmentMoney{
+                amount
+              }
+            }
+            customAttributes{
+              key
+              value
             }
             customer{
                 firstName,
@@ -46,6 +67,8 @@ const retrieveCancellOrderDetails = async (client, orderId) => {
     if (!data.order) {
       throw new Error("No order found against the provided order name");
     }
+    const lineItems = await retrieveLineItemsDetailsForOrder(client, orderId);
+    data.order.lineItems = lineItems;
     return data.order;
   } catch (err) {
     throw new Error(
@@ -55,6 +78,71 @@ const retrieveCancellOrderDetails = async (client, orderId) => {
   }
 };
 
+const retrieveLineItemsDetailsForOrder = async (client, orderId) => {
+  try {
+    let lineItems = [];
+    let next = null;
+    do {
+      const query = `query OrderLineItems($first: Int!, $after: String, $orderId: ID!){
+        order(id: $orderId){
+          id
+          lineItems(first: $first,after: $after){
+            edges{
+              node{
+                variant{
+                    sku
+                    barcode
+                    displayName
+                    id
+                    price
+                    compareAtPrice
+                    title
+                    product{
+                        id
+                        title
+                        tags
+                    }
+                }
+                quantity 
+              }
+            }
+            pageInfo{
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      }`;
+      const variables = {
+        first: 4,
+        orderId: orderId,
+      };
+      next ? (variables["after"] = next) : null;
+      const { data, errors, extensions } = await client.request(query, {
+        variables,
+      });
+      if (errors && errors.length > 0) {
+        throw new Error(
+          "Failed to retrieve line items details reason -->" + errors.join(",")
+        );
+      }
+      const pageInfo = data.order.lineItems.pageInfo;
+      let itemsList = data.order.lineItems.edges.map(el => el.node);
+      lineItems = [...lineItems,...itemsList];
+      if(pageInfo.hasNextPage){
+        next = pageInfo.endCursor;
+      }else{
+        next = false;
+      }
+    } while (next);
+    return lineItems;
+  } catch (err) {
+    throw new Error(
+      "Failed tto retrieve line items details for order reason -->" +
+        err.message
+    );
+  }
+};
 const retrieveOrderIdByOrderName = async (client, orderName) => {
   try {
     const query = `query RetrieveOrderId($first: Int, $query:String){
