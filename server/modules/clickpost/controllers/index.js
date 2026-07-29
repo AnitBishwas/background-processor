@@ -36,9 +36,9 @@ const handleClickpostRtoOrder = async (payload) => {
     const cancellOrder = await markOrderCancelled(client, orderId);
     const orderDetails = await retrieveCancellOrderDetails(client, orderId);
     const punchedData = await punchCancelOrderIntoDb(orderDetails, payload);
-    const [moengageEvent,bigqueryEvent] = await Promise.all([
+    const [moengageEvent, bigqueryEvent] = await Promise.all([
       createMoengageRtoEvent(punchedData),
-      createOrderRtoEventInBigQuery(orderDetails)
+      createOrderRtoEventInBigQuery(orderDetails),
     ]);
   } catch (err) {
     throw new Error(

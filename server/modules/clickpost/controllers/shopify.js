@@ -127,11 +127,11 @@ const retrieveLineItemsDetailsForOrder = async (client, orderId) => {
         );
       }
       const pageInfo = data.order.lineItems.pageInfo;
-      let itemsList = data.order.lineItems.edges.map(el => el.node);
-      lineItems = [...lineItems,...itemsList];
-      if(pageInfo.hasNextPage){
+      let itemsList = data.order.lineItems.edges.map((el) => el.node);
+      lineItems = [...lineItems, ...itemsList];
+      if (pageInfo.hasNextPage) {
         next = pageInfo.endCursor;
-      }else{
+      } else {
         next = false;
       }
     } while (next);
@@ -223,6 +223,20 @@ const markOrderCancelled = async (client, orderId) => {
       client,
       data.orderCancel.job.id
     );
+
+    const tagResult = await client.request(
+      `mutation tagsAdd($id: ID!, $tags: [String!]!) {
+        tagsAdd(id: $id, tags: $tags) {
+          node { id }
+          userErrors { field message }
+        }
+      }`,
+      { variables: { id: orderId, tags: ["rto-cancel"] } }
+    );
+    if (tagResult.data?.tagsAdd?.userErrors?.length > 0) {
+      throw new Error("Failed to tag order");
+    }
+
     return cancellationDone;
   } catch (err) {
     throw new Error("Failed to mark order cancelled reason -->" + err.message);

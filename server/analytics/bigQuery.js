@@ -164,6 +164,7 @@ const createOrderCancelledEventInBigQuery = async (shop, payload) => {
     let structuredData = {
       orderId: payload.name,
       shopifyOrderId: payload.id,
+      tags: payload.tags,
       createdAt: payload.created_at,
       couponCode: payload.discount_codes[0]?.code || "",
       couponValue: payload.discount_codes[0]?.amount
@@ -260,8 +261,10 @@ const createOrderRtoEventInBigQuery = async (payload) => {
       shopifyOrderId: payload.id.replace("gid://shopify/Order/", ""),
       createdAt: payload.createdAt,
       couponCode: payload.discountCode,
-      couponValue: Number(payload.totalDiscountsSet.presentmentMoney.amount) || 0,
-      totalPrice: Number(payload.currentTotalPriceSet.presentmentMoney.amount) || 0,
+      couponValue:
+        Number(payload.totalDiscountsSet.presentmentMoney.amount) || 0,
+      totalPrice:
+        Number(payload.currentTotalPriceSet.presentmentMoney.amount) || 0,
       shippingPrice:
         Number(payload.totalShippingPriceSet.presentmentMoney.amount) || 0,
       subTotalPrice: payload.totalDiscountsSet.presentmentMoney.amount
@@ -297,8 +300,7 @@ const createOrderRtoEventInBigQuery = async (payload) => {
         payload.customer?.defaultEmailAddress?.emailAddress || null,
       lineItems: payload.lineItems.map((el) => ({
         id:
-          el?.variant?.id?.replace("gid://shopify/ProductVariant/", "") ||
-          null,
+          el?.variant?.id?.replace("gid://shopify/ProductVariant/", "") || null,
         quantity: el.quantity || 0,
         ean: el?.variant?.barcode || null,
         mrp: Number(el.variant?.compareAtPrice || 0),
@@ -308,8 +310,7 @@ const createOrderRtoEventInBigQuery = async (payload) => {
         title: el.variant?.product?.title || "",
         tags_v2: el?.product?.tags,
         productId:
-          el?.variant?.product.id.replace("gid://shopify/Product/", "") ||
-          "",
+          el?.variant?.product.id.replace("gid://shopify/Product/", "") || "",
       })),
     };
     let excludeKeys = new Set(["lineItems"]);
