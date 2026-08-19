@@ -1,5 +1,6 @@
 import { Router } from "express";
 import clientProvider from "../../../utils/clientProvider.js";
+import orderCancellationRoutes from "../../modules/orderCancellation/routes/index.js";
 const proxyRouter = Router();
 
 /**
@@ -17,5 +18,7 @@ proxyRouter.get("/json", async (req, res) => {
     return res.status(400).send({ error: true });
   }
 });
+
+proxyRouter.use("/order-cancel", orderCancellationRoutes);
 
 export default proxyRouter;

@@ -129,7 +129,10 @@ const handleS3Records = async (records) => {
 
     try {
       if (eventName === "MEDIA_UPLOAD") {
-        if (bucket == "aws-swiss-reviews-media-bucket" || bucket == "swiss-beauty-review-media-bucket-production") {
+        if (
+          bucket == "aws-swiss-reviews-media-bucket" ||
+          bucket == "swiss-beauty-review-media-bucket-production"
+        ) {
           await handleReviewMediaUpload({
             bucket: record?.s3?.bucket?.name,
             key: record?.s3?.object?.key,
