@@ -23,7 +23,7 @@ const isOrderFulfilled = (order) => {
   if ((order?.fulfillments || []).length > 0) return true;
   return Boolean(
     order?.displayFulfillmentStatus &&
-      order.displayFulfillmentStatus !== "UNFULFILLED"
+    order.displayFulfillmentStatus !== "UNFULFILLED"
   );
 };
 
@@ -34,7 +34,11 @@ const isOrderFulfilled = (order) => {
  */
 const checkCancellationEligibility = (order) => {
   if (!order) {
-    return { allowed: false, code: "ORDER_NOT_FOUND", message: "Order not found." };
+    return {
+      allowed: false,
+      code: "ORDER_NOT_FOUND",
+      message: "Order not found.",
+    };
   }
 
   if (order.cancelledAt) {
@@ -65,7 +69,11 @@ const checkCancellationEligibility = (order) => {
     };
   }
 
-  return { allowed: true, code: "ELIGIBLE", message: "Order is eligible for cancellation." };
+  return {
+    allowed: true,
+    code: "ELIGIBLE",
+    message: "Order is eligible for cancellation.",
+  };
 };
 
 /* -------------------------------------------------------------------------- */
@@ -85,7 +93,10 @@ const normaliseCustomerGid = (gid) =>
 const isOwnerByCustomerId = (order, loggedInCustomerId) => {
   if (!loggedInCustomerId) return false;
   const orderCustomerId = normaliseCustomerGid(order?.customer?.id);
-  return Boolean(orderCustomerId) && String(orderCustomerId) === String(loggedInCustomerId);
+  return (
+    Boolean(orderCustomerId) &&
+    String(orderCustomerId) === String(loggedInCustomerId)
+  );
 };
 
 /**
@@ -106,12 +117,40 @@ const sanitiseCancellationReason = (reason) => {
 const ORDER_FIELDS = `
   id
   name
+  tags
   createdAt
   cancelledAt
   displayFulfillmentStatus
   displayFinancialStatus
-  customer { id }
+  discountCodes
+  totalDiscountsSet { presentmentMoney { amount } }
+  currentTotalPriceSet { presentmentMoney { amount } }
+  totalShippingPriceSet { presentmentMoney { amount } }
+  customAttributes { key value }
+  customer {
+    id
+    displayName
+    defaultEmailAddress { emailAddress }
+    defaultPhoneNumber { phoneNumber }
+  }
   fulfillments(first: 1) { id }
+  lineItems(first: 50) {
+    edges {
+      node {
+        quantity
+        variant {
+          id
+          sku
+          barcode
+          price
+          compareAtPrice
+          title
+          inventoryQuantity
+          product { id title tags }
+        }
+      }
+    }
+  }
 `;
 
 /**
@@ -251,7 +290,9 @@ const cancelOrderInShopify = async (order, shop, cancellationReason) => {
   };
 
   const { client } = await clientProvider.offline.graphqlClient({ shop });
-  const { data, errors } = await client.request(CANCEL_ORDER_MUTATION, { variables });
+  const { data, errors } = await client.request(CANCEL_ORDER_MUTATION, {
+    variables,
+  });
 
   const userErrors = [
     ...(data?.orderCancel?.orderCancelUserErrors || []),
@@ -268,15 +309,21 @@ const cancelOrderInShopify = async (order, shop, cancellationReason) => {
     };
   }
 
-  const refundInitiated = ["PAID", "PARTIALLY_PAID", "PARTIALLY_REFUNDED"].includes(
-    order?.displayFinancialStatus
-  );
+  const refundInitiated = [
+    "PAID",
+    "PARTIALLY_PAID",
+    "PARTIALLY_REFUNDED",
+  ].includes(order?.displayFinancialStatus);
 
   // Fire-and-log, never blocks the response.
   await addCancellationTag(order, shop);
   await addCancellationNote(order, shop, cancellationReason);
 
-  return { success: true, job: data?.orderCancel?.job || null, refundInitiated };
+  return {
+    success: true,
+    job: data?.orderCancel?.job || null,
+    refundInitiated,
+  };
 };
 
 /* -------------------------------------------------------------------------- */
@@ -309,12 +356,16 @@ const logCancellationStatusInMongo = async ({
       reasonCode,
       reasonMessage,
       orderCreatedAt: order.createdAt,
-      cancelledAt: status === "cancelled" ? new Date() : order.cancelledAt || null,
+      cancelledAt:
+        status === "cancelled" ? new Date() : order.cancelledAt || null,
       refundInitiated,
       bigQueryEventSent,
     });
   } catch (err) {
-    console.error("Failed to log order cancellation status in Mongo -->", err.message);
+    console.error(
+      "Failed to log order cancellation status in Mongo -->",
+      err.message
+    );
     return null;
   }
 };
@@ -335,10 +386,17 @@ const checkOrderCancellationEligibilityController = async (req, res) => {
     const shop = res.locals.user_shop;
 
     if (!loggedInCustomerId) {
-      return res.status(401).json({ success: false, error: "You must be logged in to check this order." });
+      return res
+        .status(401)
+        .json({
+          success: false,
+          error: "You must be logged in to check this order.",
+        });
     }
     if (!order_name) {
-      return res.status(400).json({ success: false, error: "order_name is required" });
+      return res
+        .status(400)
+        .json({ success: false, error: "order_name is required" });
     }
 
     const order = await getOrderByName(order_name, shop);
@@ -380,10 +438,17 @@ const cancelOrderController = async (req, res) => {
     const cancellationReason = sanitiseCancellationReason(reason);
 
     if (!loggedInCustomerId) {
-      return res.status(401).json({ success: false, error: "You must be logged in to cancel this order." });
+      return res
+        .status(401)
+        .json({
+          success: false,
+          error: "You must be logged in to cancel this order.",
+        });
     }
     if (!order_name) {
-      return res.status(400).json({ success: false, error: "order_name is required" });
+      return res
+        .status(400)
+        .json({ success: false, error: "order_name is required" });
     }
 
     const order = await getOrderByName(order_name, shop);
