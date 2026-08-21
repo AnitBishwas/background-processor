@@ -2,7 +2,6 @@ import clientProvider from "../../../../utils/clientProvider.js";
 import OrderCancellationLog from "../../../../utils/models/OrderCancellationLog.js";
 import { pushStorefrontOrderCancelledEvent } from "../helpers/bigQueryEvent.js";
 
-const CANCELLATION_WINDOW_MINUTES = 30;
 const MAX_REASON_LENGTH = 200;
 const CANCELLATION_TAG = "cancledbycustomer";
 
@@ -16,21 +15,17 @@ const normaliseOrderName = (orderName) => {
   return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
 };
 
-const getMinutesSinceOrderPlaced = (createdAt) =>
-  (Date.now() - new Date(createdAt).getTime()) / (1000 * 60);
-
 const isOrderFulfilled = (order) => {
   if ((order?.fulfillments || []).length > 0) return true;
   return Boolean(
     order?.displayFulfillmentStatus &&
-    order.displayFulfillmentStatus !== "UNFULFILLED"
+      order.displayFulfillmentStatus !== "UNFULFILLED"
   );
 };
 
 /**
- * 1) placed <= 30 min ago AND unfulfilled -> allowed
- * 2) placed  > 30 min ago                 -> NOT allowed (window expired)
- * 3) placed <= 30 min ago AND fulfilled   -> NOT allowed (already fulfilled)
+ * 1) unfulfilled -> allowed
+ * 2) fulfilled    -> NOT allowed (already fulfilled)
  */
 const checkCancellationEligibility = (order) => {
   if (!order) {
@@ -49,23 +44,12 @@ const checkCancellationEligibility = (order) => {
     };
   }
 
-  const withinWindow =
-    getMinutesSinceOrderPlaced(order.createdAt) <= CANCELLATION_WINDOW_MINUTES;
-
-  if (withinWindow && isOrderFulfilled(order)) {
+  if (isOrderFulfilled(order)) {
     return {
       allowed: false,
       code: "ORDER_ALREADY_FULFILLED",
       message:
         "Your order has already been processed/fulfilled, so it can no longer be cancelled.",
-    };
-  }
-
-  if (!withinWindow) {
-    return {
-      allowed: false,
-      code: "CANCELLATION_WINDOW_EXPIRED",
-      message: `Orders can only be cancelled within ${CANCELLATION_WINDOW_MINUTES} minutes of being placed.`,
     };
   }
 
