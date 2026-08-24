@@ -3,7 +3,7 @@ import OrderCancellationLog from "../../../../utils/models/OrderCancellationLog.
 import { pushStorefrontOrderCancelledEvent } from "../helpers/bigQueryEvent.js";
 
 const MAX_REASON_LENGTH = 200;
-const CANCELLATION_TAG = "cancledbycustomer";
+const CANCELLATION_TAG = "customer-cancel";
 
 /* -------------------------------------------------------------------------- */
 /*  Eligibility rules                                                         */
@@ -19,7 +19,7 @@ const isOrderFulfilled = (order) => {
   if ((order?.fulfillments || []).length > 0) return true;
   return Boolean(
     order?.displayFulfillmentStatus &&
-      order.displayFulfillmentStatus !== "UNFULFILLED"
+    order.displayFulfillmentStatus !== "UNFULFILLED"
   );
 };
 
@@ -370,12 +370,10 @@ const checkOrderCancellationEligibilityController = async (req, res) => {
     const shop = res.locals.user_shop;
 
     if (!loggedInCustomerId) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          error: "You must be logged in to check this order.",
-        });
+      return res.status(401).json({
+        success: false,
+        error: "You must be logged in to check this order.",
+      });
     }
     if (!order_name) {
       return res
@@ -422,12 +420,10 @@ const cancelOrderController = async (req, res) => {
     const cancellationReason = sanitiseCancellationReason(reason);
 
     if (!loggedInCustomerId) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          error: "You must be logged in to cancel this order.",
-        });
+      return res.status(401).json({
+        success: false,
+        error: "You must be logged in to cancel this order.",
+      });
     }
     if (!order_name) {
       return res
