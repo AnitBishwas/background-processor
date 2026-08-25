@@ -1,5 +1,5 @@
 import { insertBigqueryEvent } from "./helpers/index.js";
-import { getProductVariantDataFromShopify } from "./helpers/shopify.js";
+import { getBundleDetailsViaBundleVariant, getProductVariantDataFromShopify } from "./helpers/shopify.js";
 
 /**
  * Insert custom purchase event in bigquery
@@ -94,6 +94,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
         key,
         value: convertValue(value),
       }));
+    let checkForBundle = payload.line_items.find(el => el.properties.find(el => el.name == '_shopifyBundleVariant'));
     let eventPayload = {
       event_name: "purchase_custom_v2",
       event_params: eventParams,
@@ -114,10 +115,17 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
       event_date: new Date().toISOString(),
       timestamp: Date.now(),
     };
-    console.dir(
-      { message: "creating custom purchase event", eventPayload },
-      { depth: null }
-    );
+    let bundlesList = []
+    if(checkForBundle){
+      let listOfBundelsInOrder = [...new Set(payload.line_items.filter(el => el.properties.find(el => el.name == '_shopifyBundleVariant')).map(el => el.properties.find(el => el.name == '_shopifyBundleVariant')).map(el => el.value))];
+      let bundlesData = [];
+      for(let i = 0; i < listOfBundelsInOrder.length; i++){
+        let variantId = listOfBundelsInOrder[i];
+        let bundleDetails = await getBundleDetailsViaBundleVariant(shop,variantId); 
+        bundlesList.push(bundleDetails);
+      }
+    }
+    eventPayload["bundles"] = bundlesList;
     const insertion = await insertBigqueryEvent(eventPayload);
   } catch (err) {
     throw new Error(
