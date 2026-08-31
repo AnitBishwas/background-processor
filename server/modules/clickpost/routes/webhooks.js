@@ -3,9 +3,8 @@ import { passEventToSqs } from "../controllers/sqs.js";
 
 const clickPostWebhookRoute = Router();
 
-clickPostWebhookRoute.post("/rtoOrder/test", async(req,res) =>{
-  try{
-    console.log("test route was hit -->")
+clickPostWebhookRoute.post("/rtoOrder/test", async (req, res) => {
+  try {
     const payload = req.body;
     const shop =
       process.env.NODE_ENV == "dev"
@@ -15,12 +14,12 @@ clickPostWebhookRoute.post("/rtoOrder/test", async(req,res) =>{
     res.status(200).json({
       ok: true,
     });
-  }catch(err){
+  } catch (err) {
     res.status(420).json({
       ok: false,
-    }); 
+    });
   }
-})
+});
 
 // clickPostWebhookRoute.post("/rtoOrder", async (req, res) => {
 //   console.log("Click post webhook hit");

@@ -274,6 +274,7 @@ const markOrderReturnOpen = async (client, orderDetails) => {
           order{
             transactions(first:10){
               id
+              status
               amountSet{
                 presentmentMoney{
                   amount
@@ -312,7 +313,7 @@ const markOrderReturnOpen = async (client, orderDetails) => {
     );
     return {
       id: data.returnCreate.return.id,
-      orderTransactions: data.returnCreate.return.order.transactions.map(
+      orderTransactions: data.returnCreate.return.order.transactions.filter(el => el.status == 'SUCCESS').map(
         (el) => ({
           parentId: el.id,
           transactionAmount: {
@@ -354,6 +355,7 @@ const refundReturnedOrder = async (client, returnDetails) => {
       variables,
     });
     if (errors && errors.length > 0) {
+      console.dir(errors,{depth: null})
       throw new Error(
         "Failed to refund return order reason -->" + errors.join(",")
       );
