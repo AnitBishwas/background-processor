@@ -5,8 +5,14 @@ const OrderCancellationLogSchema = new mongoose.Schema(
     shop: { type: String, required: true, index: true },
     orderId: { type: String, required: true, index: true }, // Shopify GID
     orderName: { type: String, required: true, index: true }, // e.g. #1001
-    email: { type: String },
     customerId: { type: String },
+
+    // Parent + child: { reason: "Other", customReasonText: "Product mila hi nahi" }
+    // `customReasonText` is only present when the customer typed something.
+    cancellationReason: {
+      reason: { type: String },
+      customReasonText: { type: String },
+    },
 
     // "cancelled"  -> order was actually cancelled in Shopify
     // "blocked"    -> eligibility check failed, order was NOT cancelled
