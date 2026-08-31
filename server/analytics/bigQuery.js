@@ -122,20 +122,19 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
     };
     let bundlesList = [];
     if (checkForBundle) {
-      let listOfBundelsInOrder =
-          payload.line_items
-            .filter((el) =>
-              el.properties.find((el) => el.name == "_shopifyBundleVariant")
-            )
-            .map((el) => ({
-              quantity: el.quantity,
-              id: el.properties.find((el) => el.name == "_shopifyBundleVariant").value
-            })
-        );
+      let listOfBundelsInOrder = payload.line_items
+        .filter((el) =>
+          el.properties.find((el) => el.name == "_shopifyBundleVariant")
+        )
+        .map((el) => ({
+          quantity: el.quantity,
+          id: el.properties.find((el) => el.name == "_shopifyBundleVariant")
+            .value,
+        }));
       const seen = new Map();
-      const uniqueBundleList = listOfBundelsInOrder.filter(el => {
+      const uniqueBundleList = listOfBundelsInOrder.filter((el) => {
         return seen.has(el.id) ? false : seen.set(el.id, true);
-      })
+      });
       let bundlesData = [];
       for (let i = 0; i < uniqueBundleList.length; i++) {
         let variantId = uniqueBundleList[i].id;
@@ -147,7 +146,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
         bundleDetails["quantity"] = quantity;
         bundlesList.push(bundleDetails);
       }
-    };
+    }
     eventPayload["bundles"] = bundlesList;
     const insertion = await insertBigqueryEvent(eventPayload);
   } catch (err) {

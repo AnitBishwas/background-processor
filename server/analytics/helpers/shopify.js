@@ -78,6 +78,7 @@ const getBundleDetailsViaBundleVariant = async (shop, variantId) => {
           product{
             id
             title 
+            tags
           }
         } 
     }`;
@@ -99,6 +100,7 @@ const getBundleDetailsViaBundleVariant = async (shop, variantId) => {
       id: data.productVariant.product.id.replace("gid://shopify/Product/", ""),
       mrp: data.productVariant.compareAtPrice,
       price: data.productVariant.price,
+      tags_v2: data.productVariant.product.tags.join(","),
       ["currentInventory"]: data.productVariant.inventoryQuantity,
       items: componentDetails,
     };
