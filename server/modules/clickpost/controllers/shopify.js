@@ -1,83 +1,69 @@
 import clientProvider from "../../../../utils/clientProvider.js";
 
-const retrieveCancellOrderDetails = async (client, orderId) => {
+const retrieveLineItemsDetailsAgainstFulfillment = async (
+  client,
+  fulfillmentId
+) => {
   try {
-    const query = `query CancelledOrderDetails($orderId: ID!){
-        order(id: $orderId){
-            id
-            name
-            createdAt
-            discountCode
-            tags
-            currentTotalPriceSet{
-              presentmentMoney{
-                amount
-              } 
-            }
-            transactions(first:10){
-                gateway
-                amountSet{
-                    presentmentMoney{
-                        amount   
+    let lineItems = [];
+    let next = false;
+    do {
+      const query = `query FulfillmentLineItems($id:ID!,$after: String){
+        fulfillment(id: $id){
+          fulfillmentLineItems(first: 2, after:$after){
+            edges{
+              node{
+                id
+                quantity
+                lineItem{
+                  duties{
+                    id
+                    price{
+                      presentmentMoney{
+                        amount
+                      }
                     }
+                  }
                 }
-            }
-            totalRefundedSet{
-                presentmentMoney{
-                    amount
-                }
-            }
-            totalDiscountsSet{
-              presentmentMoney{
-                amount
-              } 
-            }
-            totalShippingPriceSet{
-              presentmentMoney{
-                amount
               }
             }
-            customAttributes{
-              key
-              value
-            }
-            customer{
-                firstName,
-                lastName,
-                defaultEmailAddress{
-                   emailAddress 
-                }
-                defaultPhoneNumber{
-                   phoneNumber 
-                }
-                defaultAddress{
-                    phone
-                }
-            }
-        }
-    }`;
-    const { data, extensions, errors } = await client.request(query, {
-      variables: {
-        orderId: orderId,
-      },
-    });
-    if (errors && errors.length > 0) {
-      throw new Error("Some error occured while fetching the data");
-    }
-    if (!data.order) {
-      throw new Error("No order found against the provided order name");
-    }
-    const lineItems = await retrieveLineItemsDetailsForOrder(client, orderId);
-    data.order.lineItems = lineItems;
-    return data.order;
+            pageInfo{
+              hasNextPage
+              endCursor
+            }  
+         }  
+       } 
+      }`;
+      const variables = {
+        id: fulfillmentId,
+      };
+      if (next) {
+        variables["after"] = next;
+      }
+      const { data, extensions, errors } = await client.request(query, {
+        variables,
+      });
+      if (errors && errors.length > 0) {
+        throw new Error("Failed to retrieve line items against fulfillment");
+      }
+      lineItems = [
+        ...lineItems,
+        ...data.fulfillment.fulfillmentLineItems.edges.map((el) => el.node),
+      ];
+      if (data.fulfillment.fulfillmentLineItems.pageInfo.hasNextPage) {
+        next = data.fulfillment.fulfillmentLineItems.pageInfo.endCursor;
+      } else {
+        next = false;
+      }
+    } while (next);
+    return lineItems;
   } catch (err) {
     throw new Error(
-      "Failed to retrieve order details from shopify by order id reason -->" +
+      "Failed to retrieve line items details againsft fulfillment reason -->" +
         err.message
     );
   }
 };
-
 const retrieveLineItemsDetailsForOrder = async (client, orderId) => {
   try {
     let lineItems = [];
@@ -143,7 +129,7 @@ const retrieveLineItemsDetailsForOrder = async (client, orderId) => {
     );
   }
 };
-const retrieveOrderIdByOrderName = async (client, orderName) => {
+const retrieveOrderByOrderName = async (client, orderName) => {
   try {
     const query = `query RetrieveOrderId($first: Int, $query:String){
             orders(first: $first,query: $query){
@@ -151,6 +137,9 @@ const retrieveOrderIdByOrderName = async (client, orderName) => {
                     node{
                         id
                         name
+                        fulfillments(first: 2){
+                              id 
+                        }
                     }
                 }
             }
@@ -171,115 +160,299 @@ const retrieveOrderIdByOrderName = async (client, orderName) => {
     if (!correspondingOrder) {
       throw new Error("No order found against the given order name");
     }
-    return correspondingOrder.id;
+    const retrievedFullfillments = correspondingOrder.fulfillments;
+
+    let lineItems = [];
+    for (let i = 0; i < retrievedFullfillments.length; i++) {
+      const fulFillmentId = retrievedFullfillments[i].id;
+      let lineItemsDetails = await retrieveLineItemsDetailsAgainstFulfillment(
+        client,
+        fulFillmentId
+      );
+      lineItems = [...lineItems, ...lineItemsDetails];
+    }
+    return {
+      id: correspondingOrder.id,
+      lineItems: lineItems,
+    };
   } catch (err) {
     throw new Error(
       "Failed to retrieve order id by order name reason -->" + err.message
     );
   }
 };
-const markOrderCancelled = async (client, orderId) => {
-  try {
-    const query = `mutation OrderCancel($orderId: ID!, $notifyCustomer: Boolean, $refundMethod: OrderCancelRefundMethodInput!, $restock: Boolean!, $reason: OrderCancelReason!, $staffNote: String){
-            orderCancel(orderId: $orderId, notifyCustomer: $notifyCustomer, refundMethod: $refundMethod, restock: $restock, reason: $reason, staffNote: $staffNote){
-                job{
-                    id
-                    done
-                }
-                orderCancelUserErrors{
-                    field
-                    message
-                    code
-                }
-                userErrors{
-                    field
-                    message
-                }
-            }
-        }`;
-    const variables = {
-      orderId: orderId,
-      notifyCustomer: true,
-      refundMethod: {
-        originalPaymentMethodsRefund: true,
-      },
-      restock: true,
-      reason: "OTHER",
-      staffNote: "Clickpost triggered rto order",
-    };
-    const { data, errors, extensions } = await client.request(query, {
-      variables: variables,
-    });
-    if (errors && errors.length > 0) {
-      throw new Error("Failed to cancel order");
-    }
-    if (
-      data.orderCancel?.orderCancelUserErrors.length > 0 ||
-      data.orderCancel?.userErrors.length > 0
-    ) {
-      throw new Error("Failed to cancel order");
-    }
-    const cancellationDone = await pollCancellationJob(
-      client,
-      data.orderCancel.job.id
-    );
 
-    const tagResult = await client.request(
-      `mutation tagsAdd($id: ID!, $tags: [String!]!) {
-        tagsAdd(id: $id, tags: $tags) {
-          node { id }
-          userErrors { field message }
-        }
-      }`,
-      { variables: { id: orderId, tags: ["rto-cancel"] } }
-    );
-    if (tagResult.data?.tagsAdd?.userErrors?.length > 0) {
-      throw new Error("Failed to tag order");
-    }
-
-    return cancellationDone;
-  } catch (err) {
-    throw new Error("Failed to mark order cancelled reason -->" + err.message);
-  }
-};
-const pollCancellationJob = async (client, jobId) => {
+const retrieveReturnOrderLineItems = async (client, returnId) => {
   try {
-    let done = false;
+    let lineItems = [];
+    let next = false;
     do {
-      const query = `query JobStatus($jobId: ID!) {
-                job(id: $jobId) {
-                    id
-                    done
-                }
-            }`;
+      const query = `query RetrieveReturnLineItems($id: ID!,$after: String){
+        return(id: $id){ 
+          returnLineItems(first:5,after:$after){
+            edges{
+              node{
+                id
+                quantity
+              } 
+            }
+            pageInfo{
+              hasNextPage
+              endCursor 
+            } 
+          } 
+        }
+      }`;
       const variables = {
-        jobId: jobId,
+        id: returnId,
       };
+      if (next) {
+        variables["after"] = next;
+      }
       const { data, extensions, errors } = await client.request(query, {
         variables,
       });
-      done = data.job.done;
-      if (!done) {
-        await new Promise((res, rej) => {
-          setTimeout(() => {
-            res(true);
-          }, 600);
-        });
+      if (errors && errors.length > 0) {
+        throw new Error(
+          "Failed to retrieve return order line items reason -->" +
+            errors.join(",")
+        );
       }
-    } while (!done);
-    return done;
+      lineItems = [
+        ...lineItems,
+        ...data.return.returnLineItems.edges.map((el) => ({
+          lineItemId: el.node.id,
+          quantity: el.node.quantity,
+          // duties: el.node.lineItem.duties.map((el) => ({
+          //   id: el.id,
+          //   amount: el.price.presentmentMoney.amount,
+          // })),
+        })),
+      ];
+      if (data.return.returnLineItems.pageInfo.hasNextPage) {
+        next = data.return.returnLineItems.pageInfo.endCursor;
+      } else {
+        next = false;
+      }
+    } while (next);
+    return lineItems;
   } catch (err) {
-    throw new Error("Failed to poll cancellation job reason -->" + err.message);
+    throw new Error(
+      "Failed to retrieve return order line items reason -->" + err.message
+    );
   }
 };
-const getOrderRefundData = async (shop, orderId) => {
+
+const markOrderReturn = async (client, orderDetails) => {
   try {
+    const returnOpen = await markOrderReturnOpen(client, orderDetails); // mark order return
+    const refundOrder = await refundReturnedOrder(client, returnOpen);
+    const returnClose = await markReturnClose(client, returnOpen.id);
+    const lineItems = await retrieveLineItemsDetailsForOrder(
+      client,
+      returnClose.id
+    );
+    return {
+      ...returnClose,
+      lineItems,
+    };
   } catch (err) {
-    throw new Error("failed");
+    throw new Error("Failed to mark order return reason -->" + err.message);
   }
 };
-export {
-  retrieveCancellOrderDetails,
-  markOrderCancelled,
-  retrieveOrderIdByOrderName,
+
+const markOrderReturnOpen = async (client, orderDetails) => {
+  try {
+    const query = `mutation ReturnCreate($returnInput: ReturnInput!){
+      returnCreate(returnInput: $returnInput){
+        userErrors{
+          field
+          message
+        }
+        return{
+          id
+          order{
+            transactions(first:10){
+              id
+              amountSet{
+                presentmentMoney{
+                  amount
+                } 
+              } 
+            }
+          }
+        }
+      }
+    }`;
+    const variables = {
+      returnInput: {
+        orderId: orderDetails.id,
+        returnLineItems: orderDetails.lineItems.map((el) => ({
+          fulfillmentLineItemId: el.id,
+          quantity: el.quantity,
+          returnReason: "OTHER",
+          returnReasonNote: "Clickpost rto trigger line item",
+        })),
+      },
+    };
+    const { data, errors, extensions } = await client.request(query, {
+      variables,
+    });
+    if (errors && errors.length > 0) {
+      throw new Error(
+        "Failed to mark order return open reason -->" + errors.join(",")
+      );
+    }
+    if (data.returnCreate.userErrors.length > 0) {
+      throw new Error("Failed to mark order return open");
+    }
+    const lineItems = await retrieveReturnOrderLineItems(
+      client,
+      data.returnCreate.return.id
+    );
+    return {
+      id: data.returnCreate.return.id,
+      orderTransactions: data.returnCreate.return.order.transactions.map(
+        (el) => ({
+          parentId: el.id,
+          transactionAmount: {
+            amount: el.amountSet.presentmentMoney.amount,
+            currencyCode: "INR",
+          },
+        })
+      ),
+      lineItems,
+    };
+    return data;
+  } catch (err) {
+    throw new Error("Failed to mark return open -->" + err.message);
+  }
 };
+const refundReturnedOrder = async (client, returnDetails) => {
+  try {
+    const query = `mutation ReturnRefund($returnRefundInput: ReturnRefundInput!){
+      returnRefund(returnRefundInput: $returnRefundInput){
+        userErrors{
+          field
+          message   
+        } 
+      } 
+    }`;
+    const variables = {
+      returnRefundInput: {
+        returnId: returnDetails.id,
+        refundDuties: [],
+        orderTransactions: returnDetails.orderTransactions,
+        returnRefundLineItems: returnDetails.lineItems.map((el) => ({
+          returnLineItemId: el.lineItemId,
+          quantity: el.quantity,
+        })),
+        notifyCustomer: true,
+      },
+    };
+    const { data, extensions, errors } = await client.request(query, {
+      variables,
+    });
+    if (errors && errors.length > 0) {
+      throw new Error(
+        "Failed to refund return order reason -->" + errors.join(",")
+      );
+    }
+    if (data.returnRefund.userErrors.length > 0) {
+      throw new Error(
+        "Failed to refund retuned order reason -->" +
+          data.returnRefund.userErrors.join(",")
+      );
+    }
+    return true;
+  } catch (err) {
+    throw new Error("Failed to refund returned order reason -->" + err.message);
+  }
+};
+const markReturnClose = async (client, returnId) => {
+  try {
+    const query = `mutation ReturnOpen($id: ID!){
+      returnClose(id: $id){
+          return{
+            order{
+            id
+            name
+            createdAt
+            discountCode
+            tags
+            currentTotalPriceSet{
+              presentmentMoney{
+                amount
+              } 
+            }
+            transactions(first:10){
+                gateway
+                amountSet{
+                    presentmentMoney{
+                        amount   
+                    }
+                }
+            }
+            totalRefundedSet{
+                presentmentMoney{
+                    amount
+                }
+            }
+            totalDiscountsSet{
+              presentmentMoney{
+                amount
+              } 
+            }
+            totalShippingPriceSet{
+              presentmentMoney{
+                amount
+              }
+            }
+            customAttributes{
+              key
+              value
+            }
+            customer{
+                firstName,
+                lastName,
+                defaultEmailAddress{
+                   emailAddress 
+                }
+                defaultPhoneNumber{
+                   phoneNumber 
+                }
+                defaultAddress{
+                    phone
+                }
+              }
+            } 
+          } 
+          userErrors{
+            field
+            message 
+          }
+      }
+    }`;
+    const variables = {
+      id: returnId,
+    };
+    const { data, extensions, errors } = await client.request(query, {
+      variables,
+    });
+    if (errors && errors.length > 0) {
+      throw new Error(
+        "Failed to mark return close reason -->" + errors.join(",")
+      );
+    }
+    if (data.returnClose.userErrors.length > 0) {
+      throw new Error(
+        "Failed to mark return close reason -->" +
+          data.returnClose.userErrors.join(",")
+      );
+    }
+    return data.returnClose.return.order;
+  } catch (err) {
+    throw new Error("Failed to mark return close reason -->" + err.message);
+  }
+};
+export { retrieveOrderByOrderName, markOrderReturn };

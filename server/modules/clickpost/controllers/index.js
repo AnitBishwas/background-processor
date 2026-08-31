@@ -2,11 +2,7 @@ import clientProvider from "../../../../utils/clientProvider.js";
 import RtoOrder from "../../../../utils/models/RtoOrder.js";
 import { createOrderRtoEventInBigQuery } from "../../../analytics/bigQuery.js";
 import { createMoengageEvent } from "../../moe/helpers/index.js";
-import {
-  markOrderCancelled,
-  retrieveCancellOrderDetails,
-  retrieveOrderIdByOrderName,
-} from "./shopify.js";
+import { markOrderReturn, retrieveOrderByOrderName } from "./shopify.js";
 
 const handleClickpostRtoOrder = async (payload) => {
   try {
@@ -32,13 +28,12 @@ const handleClickpostRtoOrder = async (payload) => {
       return;
     }
     const { client } = await clientProvider.offline.graphqlClient({ shop });
-    const orderId = await retrieveOrderIdByOrderName(client, orderName);
-    const cancellOrder = await markOrderCancelled(client, orderId);
-    const orderDetails = await retrieveCancellOrderDetails(client, orderId);
-    const punchedData = await punchCancelOrderIntoDb(orderDetails, payload);
+    const orderDetails = await retrieveOrderByOrderName(client, orderName);
+    const returnOrder = await markOrderReturn(client, orderDetails);
+    const punchedData = await punchCancelOrderIntoDb(returnOrder, payload);
     const [moengageEvent, bigqueryEvent] = await Promise.all([
       createMoengageRtoEvent(punchedData),
-      createOrderRtoEventInBigQuery(orderDetails),
+      createOrderRtoEventInBigQuery(returnOrder),
     ]);
   } catch (err) {
     throw new Error(
