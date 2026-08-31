@@ -19,7 +19,7 @@ const isOrderFulfilled = (order) => {
   if ((order?.fulfillments || []).length > 0) return true;
   return Boolean(
     order?.displayFulfillmentStatus &&
-    order.displayFulfillmentStatus !== "UNFULFILLED"
+      order.displayFulfillmentStatus !== "UNFULFILLED"
   );
 };
 
@@ -92,6 +92,36 @@ const sanitiseCancellationReason = (reason) => {
   const trimmed = (reason || "").toString().trim();
   if (!trimmed) return "Not specified";
   return trimmed.slice(0, MAX_REASON_LENGTH);
+};
+
+/**
+ * Same trim/cap rules as above, but for the free-text box content - no
+ * forced default, since the textbox is optional.
+ */
+const sanitiseCustomReasonText = (text) =>
+  (text || "").toString().trim().slice(0, MAX_REASON_LENGTH);
+
+/**
+ * Builds the final cancellation reason:
+ *   - `cancellationReason` is the PARENT object: { reason, customReasonText? }
+ *     `customReasonText` is only included as a key when the customer
+ *     actually typed something - if the textbox was empty, the key is
+ *     simply absent (not an empty string).
+ *   - `displayText` is a flat combined string, kept only for places that
+ *     need plain text (Shopify's staff note and the BigQuery event).
+ */
+const buildCancellationReasonData = (reason, customReasonText) => {
+  const parentReason = sanitiseCancellationReason(reason);
+  const childText = sanitiseCustomReasonText(customReasonText);
+
+  const cancellationReason = { reason: parentReason };
+  if (childText) {
+    cancellationReason.customReasonText = childText;
+  }
+
+  const displayText = childText ? `${parentReason} - ${childText}` : parentReason;
+
+  return { cancellationReason, displayText };
 };
 
 /* -------------------------------------------------------------------------- */
@@ -232,15 +262,16 @@ const addCancellationTag = async (order, shop) => {
  * Writes the customer's cancellation reason into the order's "Notes" field
  * (the field shown in the Shopify admin order sidebar) - separate from
  * staffNote, which only appears in the order's activity timeline.
+ * `displayText` is the flat combined string built from the parent+child.
  */
-const addCancellationNote = async (order, shop, cancellationReason) => {
+const addCancellationNote = async (order, shop, displayText) => {
   try {
     const { client } = await clientProvider.offline.graphqlClient({ shop });
     const { errors, data } = await client.request(ORDER_UPDATE_NOTE_MUTATION, {
       variables: {
         input: {
           id: order.id,
-          note: `Cancelled by customer. Reason: ${cancellationReason}`,
+          note: `Cancelled by customer. Reason: ${displayText}`,
         },
       },
     });
@@ -262,14 +293,15 @@ const addCancellationNote = async (order, shop, cancellationReason) => {
  * Cancels the order in Shopify with a full refund + restock, records the
  * customer's reason in the order's staff note, and tags the order. Cashback
  * is reversed automatically by Shopify's own order-cancelled flow.
+ * `displayText` is the flat combined string (Shopify fields need plain text).
  */
-const cancelOrderInShopify = async (order, shop, cancellationReason) => {
+const cancelOrderInShopify = async (order, shop, displayText) => {
   const variables = {
     orderId: order.id,
     notifyCustomer: true,
     restock: true,
     reason: "CUSTOMER",
-    staffNote: `Order cancelled by customer via storefront cancel button. Reason: ${cancellationReason}`,
+    staffNote: `Order cancelled by customer via storefront cancel button. Reason: ${displayText}`,
     refundMethod: { originalPaymentMethodsRefund: true },
   };
 
@@ -301,7 +333,7 @@ const cancelOrderInShopify = async (order, shop, cancellationReason) => {
 
   // Fire-and-log, never blocks the response.
   await addCancellationTag(order, shop);
-  await addCancellationNote(order, shop, cancellationReason);
+  await addCancellationNote(order, shop, displayText);
 
   return {
     success: true,
@@ -318,6 +350,9 @@ const cancelOrderInShopify = async (order, shop, cancellationReason) => {
  * Records every attempt (blocked, failed, or cancelled) so there's always
  * an audit trail. Never throws - a logging failure must not break the
  * actual cancel/check flow.
+ *
+ * `cancellationReason` is now the parent object { reason, customReasonText? }
+ * - stored as-is in Mongo.
  */
 const logCancellationStatusInMongo = async ({
   shop,
@@ -410,14 +445,22 @@ const checkOrderCancellationEligibilityController = async (req, res) => {
 /**
  * POST /api/proxy_route/order-cancel/cancel
  * Query (added by Shopify): logged_in_customer_id, shop, signature
- * Body: { order_name, reason }
+ * Body: { order_name, reason, custom_reason }
+ *   - reason        : selected radio option text (parent)
+ *   - custom_reason : free-text box content, e.g. when "Other" is picked (child)
  */
 const cancelOrderController = async (req, res) => {
   try {
     const loggedInCustomerId = req.query.logged_in_customer_id;
-    const { order_name, reason } = req.body || {};
+    const { order_name, reason, custom_reason } = req.body || {};
     const shop = res.locals.user_shop;
-    const cancellationReason = sanitiseCancellationReason(reason);
+
+    // cancellationReason = { reason, customReasonText? } - customReasonText
+    // only present when the customer actually typed something.
+    const { cancellationReason, displayText } = buildCancellationReasonData(
+      reason,
+      custom_reason
+    );
 
     if (!loggedInCustomerId) {
       return res.status(401).json({
@@ -457,7 +500,7 @@ const cancelOrderController = async (req, res) => {
       });
     }
 
-    const result = await cancelOrderInShopify(order, shop, cancellationReason);
+    const result = await cancelOrderInShopify(order, shop, displayText);
 
     if (!result.success) {
       await logCancellationStatusInMongo({
@@ -484,6 +527,16 @@ const cancelOrderController = async (req, res) => {
 
     await pushStorefrontOrderCancelledEvent(order, {
       shop,
+      reasonCode: eligibility.code,
+      cancellationReason: displayText,
+      refundInitiated: result.refundInitiated,
+    });
+
+    // Success ho jaane par poora relevant data log karo
+    console.log("cancelOrderController --> success:", {
+      success: true,
+      shop,
+      order: { name: order.name, id: order.id },
       reasonCode: eligibility.code,
       cancellationReason,
       refundInitiated: result.refundInitiated,
