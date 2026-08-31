@@ -248,6 +248,7 @@ const markOrderReturn = async (client, orderDetails) => {
     const returnOpen = await markOrderReturnOpen(client, orderDetails); // mark order return
     const refundOrder = await refundReturnedOrder(client, returnOpen);
     const returnClose = await markReturnClose(client, returnOpen.id);
+    const orderTag = await addTagInOrder(client,orderDetails.id,"rto-cancel");
     const lineItems = await retrieveLineItemsDetailsForOrder(
       client,
       returnClose.id
@@ -457,4 +458,31 @@ const markReturnClose = async (client, returnId) => {
     throw new Error("Failed to mark return close reason -->" + err.message);
   }
 };
-export { retrieveOrderByOrderName, markOrderReturn };
+const addTagInOrder = async (client,orderId,tag) =>{
+  try{
+    const query = `mutation addTags($id: ID!, $tags: [String!]!){
+      tagsAdd(id: $id, tags:$tags){
+        userErrors{
+          message 
+        } 
+      } 
+    }`;
+    const variables = {
+      id: orderId,
+      tags: tag
+    };
+    const {data,extensions,errors} = await client.request(query,{
+      variables
+    });
+    if(errors && errors.length > 0){
+      throw new Error("Failed to add tag in order reason -->"+ errors.join(","))
+    }
+    if(data.tagsAdd.userErrors.length > 0){
+      throw new Error("failed to add tag in order reason -->" + data.tagsAdd.userErrors.join(","));
+    };
+    return true;
+  }catch(err){
+    throw new Error("Failed to add tag in order reason -->" + err.message)
+  }
+}
+export { retrieveOrderByOrderName, markOrderReturn,addTagInOrder };
