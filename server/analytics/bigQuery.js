@@ -148,6 +148,7 @@ const createCustomPurchaseEventInBiqQuery = async (shop, payload) => {
       }
     }
     eventPayload["bundles"] = bundlesList;
+    console.dir(eventPayload,{depth: null})
     const insertion = await insertBigqueryEvent(eventPayload);
   } catch (err) {
     throw new Error(

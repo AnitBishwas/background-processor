@@ -6,7 +6,7 @@ import { markOrderReturn, retrieveOrderByOrderName } from "./shopify.js";
 
 const handleClickpostRtoOrder = async (payload) => {
   try {
-    console.log("clickpost route was hit")
+    console.log("clickpost route was hit");
     const shop = payload.shop;
     if (!shop) {
       throw new Error("no shop provided in the payload");
