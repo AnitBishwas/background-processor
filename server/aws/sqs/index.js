@@ -20,7 +20,10 @@ import { handleReviewMediaUpload } from "../../modules/reviews/controllers/media
 import { handleReviewUploadJob } from "../../modules/reviews/controllers/uploadCsv.js";
 import { handleReviewSubmission } from "../../modules/reviews/controllers/index.js";
 import { handleClickpostRtoOrder } from "../../modules/clickpost/controllers/index.js";
-import { handleCashbackReport, handleCashbackReportGenerated } from "../../modules/cashback/controllers/reports.js";
+import {
+  handleCashbackReport,
+  handleCashbackReportGenerated,
+} from "../../modules/cashback/controllers/reports.js";
 
 // ["ORDER_CREATE","CASHBACK_PENDING_ASSIGNED","CASHBACK_UTILISED","ORDER_CANCEL","CASHBACK_CANCEL","ORDER_DELIVERED","CASHBACK_ASSIGN","ORDER_REFUND","CASHBACK_REFUND","CASHBACK_BULK_DISTRIBUTION","CASHBACK_Manual_DISTRIBUTION"]
 const sqs = new AWS.SQS();

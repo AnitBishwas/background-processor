@@ -45,7 +45,7 @@ const toRow = (order) =>
     .join(",") + "\n";
 
 const handleCashbackReport = async (payload) => {
- console.log("handling cashback report")
+  console.log("handling cashback report");
   const cashbackModel = await cashbackModels();
   const reportModel = cashbackModel.Report;
   let s3Url = null;
@@ -59,8 +59,15 @@ const handleCashbackReport = async (payload) => {
       });
     }
   } catch (err) {
-    await updateReportStatus(reportModel, payload._id, "failed", err.message).catch(() => {});
-    throw new Error("Failed to handle cashback report reason -->" + err.message);
+    await updateReportStatus(
+      reportModel,
+      payload._id,
+      "failed",
+      err.message
+    ).catch(() => {});
+    throw new Error(
+      "Failed to handle cashback report reason -->" + err.message
+    );
   }
   // Kept outside the try-catch above so a DB failure here does not
   // accidentally mark the report as failed when S3 upload already succeeded.
@@ -128,7 +135,9 @@ const streamUtilisedCashbackReportToS3 = async ({ start, end, reportId }) => {
           ...(next ? { after: next } : {}),
         };
 
-        const { data, extensions, errors } = await client.request(query, { variables });
+        const { data, extensions, errors } = await client.request(query, {
+          variables,
+        });
 
         if (errors && errors.length > 0) {
           throw new Error("Shopify GraphQL error: " + errors[0].message);
@@ -143,12 +152,14 @@ const streamUtilisedCashbackReportToS3 = async ({ start, end, reportId }) => {
             totalPrice: node.totalPriceSet?.presentmentMoney?.amount || 0,
             refund: node.totalRefundedSet?.presentmentMoney?.amount || 0,
             return: node.returnStatus !== "NO_RETURN",
-            delivered: node.fulfillments.some((f) => f.displayStatus === "DELIVERED"),
+            delivered: node.fulfillments.some(
+              (f) => f.displayStatus === "DELIVERED"
+            ),
             paymentStatus: node.displayFinancialStatus,
             discountCode: node.discountCode || "",
             cashbackAmount:
-              node.transactions.find((t) => t.gateway === "Cashback")
-                ?.amountSet?.presentmentMoney?.amount || 0,
+              node.transactions.find((t) => t.gateway === "Cashback")?.amountSet
+                ?.presentmentMoney?.amount || 0,
           };
           passThrough.write(toRow(order));
         }
@@ -161,9 +172,14 @@ const streamUtilisedCashbackReportToS3 = async ({ start, end, reportId }) => {
         // Calculate exact wait time from restoreRate rather than using a fixed sleep.
         const throttle = extensions?.cost?.throttleStatus;
         if (throttle && throttle.currentlyAvailable < SHOPIFY_TOKEN_RESERVE) {
-          const tokensNeeded = SHOPIFY_TOKEN_RESERVE - throttle.currentlyAvailable;
-          const waitMs = Math.ceil((tokensNeeded / throttle.restoreRate) * 1000);
-          console.log(`Shopify token reserve low (${throttle.currentlyAvailable}), waiting ${waitMs}ms`);
+          const tokensNeeded =
+            SHOPIFY_TOKEN_RESERVE - throttle.currentlyAvailable;
+          const waitMs = Math.ceil(
+            (tokensNeeded / throttle.restoreRate) * 1000
+          );
+          console.log(
+            `Shopify token reserve low (${throttle.currentlyAvailable}), waiting ${waitMs}ms`
+          );
           await new Promise((resolve) => setTimeout(resolve, waitMs));
         }
       } while (next);
@@ -180,28 +196,39 @@ const streamUtilisedCashbackReportToS3 = async ({ start, end, reportId }) => {
   return `https://${process.env.CASHBACK_REPORT_AWS_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
 };
 
-const updateReportStatus = async (reportModel, reportId, status, error, cdn) => {
+const updateReportStatus = async (
+  reportModel,
+  reportId,
+  status,
+  error,
+  cdn
+) => {
   try {
     const rp = await reportModel.findById(reportId);
     let update = {
-        status
+      status,
+    };
+    if (cdn) {
+      update["cdn"] = cdn;
     }
-    if(cdn){
-        update["cdn"] = cdn;
+    if (error) {
+      update["error"] = {
+        message: error,
+      };
     }
-    if(error){
-        update["error"] = {
-            message: error
-        }
-    }
-    const updates =  await reportModel.findByIdAndUpdate(reportId, {"$set": update}).lean();
-    if(status == 'success'){
-      const shop = process.env.NODE_ENV == 'dev' ? 'swiss-local-dev.myshopify.com' : 'swiss-beauty-dev.myshopify.com';
+    const updates = await reportModel
+      .findByIdAndUpdate(reportId, { $set: update })
+      .lean();
+    if (status == "success") {
+      const shop =
+        process.env.NODE_ENV == "dev"
+          ? "swiss-local-dev.myshopify.com"
+          : "swiss-beauty-dev.myshopify.com";
       const payload = {
         shop: shop,
         topic: "CASHBACK_REPORT_GENERATED",
-        ...updates
-      }
+        ...updates,
+      };
       await sendToSQS(payload);
     }
     return updates;
@@ -211,15 +238,19 @@ const updateReportStatus = async (reportModel, reportId, status, error, cdn) => 
   }
 };
 
-const handleCashbackReportGenerated = async(payload) =>{
-  try{
+const handleCashbackReportGenerated = async (payload) => {
+  try {
     const cashbackModel = await cashbackModels();
     const reportModel = cashbackModel.Report;
     const report = await reportModel.findById(payload._id).lean();
-    await sendSubscribedEmailCashbackReport(report)
-  }catch(err){
-    console.log("Failed to handle cashback report generated reason -->" + err.message);
-    throw new Error("Failed to handle cashback report generated reason -->" + err.message);
+    await sendSubscribedEmailCashbackReport(report);
+  } catch (err) {
+    console.log(
+      "Failed to handle cashback report generated reason -->" + err.message
+    );
+    throw new Error(
+      "Failed to handle cashback report generated reason -->" + err.message
+    );
   }
-}
-export { handleCashbackReport,handleCashbackReportGenerated };
+};
+export { handleCashbackReport, handleCashbackReportGenerated };

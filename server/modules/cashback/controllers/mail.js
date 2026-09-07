@@ -8,7 +8,6 @@ const ses = new SESClient({
   },
 });
 
-
 const sendSubscribedEmailCashbackReport = async (reportData) => {
   try {
     const recipients = reportData.recipients;
@@ -28,7 +27,9 @@ const sendSubscribedEmailCashbackReport = async (reportData) => {
         Source: reportData.user.email,
         Destination: { ToAddresses: recipients },
         Message: {
-          Subject: { Data: `Cashback ${reportData.type} report ${new Date(reportData.dateRange.start).toDateString()} - ${new Date(reportData.dateRange.end).toDateString()}` },
+          Subject: {
+            Data: `Cashback ${reportData.type} report ${new Date(reportData.dateRange.start).toDateString()} - ${new Date(reportData.dateRange.end).toDateString()}`,
+          },
           Body: { Html: { Data: htmlBody, Charset: "UTF-8" } },
         },
       })

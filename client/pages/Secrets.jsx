@@ -32,6 +32,11 @@ const MODULES = [
     value: "clickpost",
     prefix: "/public/clickpost",
   },
+  {
+    label: "Storefront public api",
+    value:"events",
+    prefix:"/public/events"
+  }
   // add more modules...
 ];
 
