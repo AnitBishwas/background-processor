@@ -9,6 +9,7 @@ import settingsSchema from "@swiss-beauty/cashback-schema/src/schemas/Settings.j
 import cashbackDiscountSchema from "@swiss-beauty/cashback-schema/src/schemas/CashbackDiscount.js";
 import storefrontOfferSchema from "@swiss-beauty/cashback-schema/src/schemas/StorefrontOffer.js";
 import orderSchema from "@swiss-beauty/cashback-schema/src/schemas/Order.js";
+import ReportSchema from "@swiss-beauty/cashback-schema/src/schemas/Report.js";
 
 import { CASHBACK_COLLECTIONS } from "@swiss-beauty/cashback-schema/src/collectionsMaps.js";
 
@@ -83,6 +84,10 @@ const cashbackModels = async () => {
     conn.models.Order ||
     conn.model("Order", orderSchema, CASHBACK_COLLECTIONS.Order);
 
+  const Report =
+    conn.models.Report ||
+    conn.model("Report", ReportSchema, CASHBACK_COLLECTIONS.Report);
+
   return {
     conn,
     Wallet,
@@ -94,6 +99,7 @@ const cashbackModels = async () => {
     Record,
     CashbackDiscount,
     Order,
+    Report,
   };
 };
 
