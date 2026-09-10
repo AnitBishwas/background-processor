@@ -34,9 +34,9 @@ const MODULES = [
   },
   {
     label: "Storefront public api",
-    value:"events",
-    prefix:"/public/events"
-  }
+    value: "events",
+    prefix: "/public/events",
+  },
   // add more modules...
 ];
 

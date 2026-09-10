@@ -17,14 +17,14 @@ eventPublicRoutes.post("/", async (req, res) => {
       await handleMoeEvent(req.body);
     }
     res
-      .send({
+      .json({
         ok: true,
       })
       .status(200);
   } catch (err) {
     console.log("Failed to handle event post route reason -->" + err.message);
     res
-      .send({
+      .json({
         ok: false,
       })
       .status(420);
