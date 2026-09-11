@@ -173,6 +173,10 @@
         {
           "name": "AWS_S3_SECRET_KEY",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:AWS_S3_SECRET_KEY::"
+        },
+        {
+          "name": "CASHBACK_REPORT_AWS_BUCKET",
+          "valueFrom":"arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CASHBACK_REPORT_AWS_BUCKET::"
         }
       ],
       "environmentFiles": [],
