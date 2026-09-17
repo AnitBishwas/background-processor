@@ -24,6 +24,7 @@ import {
   handleCashbackReport,
   handleCashbackReportGenerated,
 } from "../../modules/cashback/controllers/reports.js";
+import { handleVariantBackInStock } from "../../modules/backInStock/controllers.js";
 
 // ["ORDER_CREATE","CASHBACK_PENDING_ASSIGNED","CASHBACK_UTILISED","ORDER_CANCEL","CASHBACK_CANCEL","ORDER_DELIVERED","CASHBACK_ASSIGN","ORDER_REFUND","CASHBACK_REFUND","CASHBACK_BULK_DISTRIBUTION","CASHBACK_Manual_DISTRIBUTION"]
 const sqs = new AWS.SQS();
@@ -239,6 +240,10 @@ const handleTopicMessage = async (topic, payload, meta = {}) => {
     case "CASHBACK_REPORT_GENERATED":
       await handleCashbackReportGenerated(payload);
       console.log("processed cashback report generated ✅");
+      break;
+    case "VARIANT_BACK_IN_STOCK":
+      await handleVariantBackInStock(payload);
+      console.log("processed variant back in stock ✅");
       break;
     default:
       const err = new Error(`Unrecognised topic: "${topic}"`);

@@ -37,6 +37,11 @@ const MODULES = [
     value: "events",
     prefix: "/public/events",
   },
+  {
+    label: "Api access token",
+    value: "token",
+    prefix: "/public/token",
+  },
   // add more modules...
 ];
 

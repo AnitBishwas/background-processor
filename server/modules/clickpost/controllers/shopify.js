@@ -276,6 +276,7 @@ const markOrderReturnOpen = async (client, orderDetails) => {
             transactions(first:10){
               id
               status
+              gateway
               amountSet{
                 presentmentMoney{
                   amount
@@ -315,7 +316,7 @@ const markOrderReturnOpen = async (client, orderDetails) => {
     return {
       id: data.returnCreate.return.id,
       orderTransactions: data.returnCreate.return.order.transactions
-        .filter((el) => el.status == "SUCCESS")
+        .filter((el) => el.status == "SUCCESS" && el.gateway != "Gokwik PPCOD")
         .map((el) => ({
           parentId: el.id,
           transactionAmount: {

@@ -6,6 +6,7 @@ import exotelRoutes from "../../modules/exotel/routes/exotelRoutes.js";
 import clickpostRoutes from "../../modules/clickpost/routes/index.js";
 import eventPublicRoutes from "../../modules/events/routes/publicRoutes.js";
 import cors from "cors";
+import tokenDelegationPublicRoutes from "../../modules/accessTokenDelegration/routes/public.js";
 
 const publicRoutes = Router();
 
@@ -25,7 +26,7 @@ publicRoutes.use(
   cors({
     origin: "*",
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type","x-api-key"],
+    allowedHeaders: ["Authorization", "Content-Type", "x-api-key"],
     optionsSuccessStatus: 200,
   }),
   publicApiKeyAuth
@@ -36,5 +37,6 @@ publicRoutes.use("/limechat", limeChaRoutes);
 publicRoutes.use("/exotel", exotelRoutes);
 publicRoutes.use("/clickpost", clickpostRoutes);
 publicRoutes.use("/events", eventPublicRoutes);
+publicRoutes.use("/token", tokenDelegationPublicRoutes)
 
 export default publicRoutes;
