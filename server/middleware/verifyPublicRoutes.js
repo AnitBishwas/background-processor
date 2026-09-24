@@ -33,6 +33,11 @@ const pathAllowed = (pathname, allowedPrefixes) => {
 };
 
 const publicApiKeyAuth = async (req, res, next) => {
+
+  // if (process.env.NODE_ENV === "dev") {
+  //   return next();
+  // }
+
   try {
     const apiKey = extractApiKey(req);
     if (!apiKey) return res.status(401).json({ error: "Missing API key" });
