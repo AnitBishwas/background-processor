@@ -115,6 +115,10 @@
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MOE_API_KEY::"
         },
         {
+          "name": "MOE_BUSINESS_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MOE_BUSINESS_API_KEY::"
+        },
+        {
           "name": "MOE_URL",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:MOE_URL::"
         },
@@ -176,7 +180,7 @@
         },
         {
           "name": "CASHBACK_REPORT_AWS_BUCKET",
-          "valueFrom":"arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CASHBACK_REPORT_AWS_BUCKET::"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:476114140918:secret:background-processor-secrets-YZTyJB:CASHBACK_REPORT_AWS_BUCKET::"
         }
       ],
       "environmentFiles": [],

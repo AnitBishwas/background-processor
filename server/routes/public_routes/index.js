@@ -37,6 +37,6 @@ publicRoutes.use("/limechat", limeChaRoutes);
 publicRoutes.use("/exotel", exotelRoutes);
 publicRoutes.use("/clickpost", clickpostRoutes);
 publicRoutes.use("/events", eventPublicRoutes);
-publicRoutes.use("/token", tokenDelegationPublicRoutes)
+publicRoutes.use("/token", tokenDelegationPublicRoutes);
 
 export default publicRoutes;
