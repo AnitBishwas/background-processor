@@ -2,6 +2,22 @@ import clientProvider from "../../../../utils/clientProvider.js";
 import { getOrderTrackingInfo } from "./tracking.js";
 import { mapOrderStatus } from "./mapping.js";
 
+/**
+ * attach ClickPost tracking info onto a shopify order in-place
+ * @param {object} order - shopify order
+ * @returns {object} order with `.tracking` attached
+ */
+const attachTrackingToOrder = async (order) => {
+  try {
+    const tracking = await getOrderTrackingInfo(order);
+    order.tracking = tracking;
+  } catch (err) {
+    console.log("Failed to get tracking reason -->" + err.message);
+    order.tracking = null;
+  }
+  return order;
+};
+
 const normalizeIndianPhone = (input) => {
   if (!input) {
     throw new Error("Phone number is required");
@@ -149,6 +165,7 @@ const getOrderByOrderName = async (shop, orderName) => {
               trackingInfo(first:10){
                 number
                 company
+                url
               }
             }
           }
@@ -161,13 +178,7 @@ const getOrderByOrderName = async (shop, orderName) => {
       return null;
     }
     order = order.node;
-    try {
-      const tracking = await getOrderTrackingInfo(order);
-      order.tracking = tracking;
-    } catch (err) {
-      console.log("Failed to get tracking reason -->" + err.message);
-      order.tracking = null;
-    }
+    order = await attachTrackingToOrder(order);
     return order;
   } catch (err) {
     throw new Error(
@@ -196,10 +207,11 @@ const getOrderDetailsFromShopifyByOrderName = async (shop, orderName) => {
             returnStatus
             cancelledAt
             cancelledAt
-            fulfillments(first:1){
+            fulfillments(first:50){
               displayStatus
               updatedAt
               trackingInfo(first: 1){
+                number
                 url
               }
             }
@@ -231,10 +243,11 @@ const getOrderDetailsFromShopifyByOrderName = async (shop, orderName) => {
  */
 const getOrderStatusByOrderId = async (shop, orderId) => {
   try {
-    const orderDetails = await getOrderDetailsFromShopifyByOrderName(
+    let orderDetails = await getOrderDetailsFromShopifyByOrderName(
       shop,
       orderId
     );
+    orderDetails = await attachTrackingToOrder(orderDetails);
     const orderStatus = await mapOrderStatus(orderDetails);
     return orderStatus;
   } catch (err) {
