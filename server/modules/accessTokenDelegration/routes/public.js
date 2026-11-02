@@ -21,7 +21,9 @@ tokenDelegationPublicRoutes.post("/generate", async (req, res) => {
       "read_all_orders",
       "read_reports",
       "write_products",
-      "write_orders"
+      "write_orders",
+      "read_reports",
+      "read_analytics_annotations"
     ];
     const checkIfScopesAreValid = scopes.every(
       (el) => validAccessScopes.indexOf(el) != -1
