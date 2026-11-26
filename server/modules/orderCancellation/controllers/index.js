@@ -4,6 +4,7 @@ import { pushStorefrontOrderCancelledEvent } from "../helpers/bigQueryEvent.js";
 
 const MAX_REASON_LENGTH = 200;
 const CANCELLATION_TAG = "customer-cancel";
+const CANCELLATION_WINDOW_MINUTES = 30;
 
 /* -------------------------------------------------------------------------- */
 /*  Eligibility rules                                                         */
@@ -23,9 +24,14 @@ const isOrderFulfilled = (order) => {
   );
 };
 
+const getMinutesSinceOrderPlaced = (createdAt) =>
+  (Date.now() - new Date(createdAt).getTime()) / (1000 * 60);
+
 /**
- * 1) unfulfilled -> allowed
- * 2) fulfilled    -> NOT allowed (already fulfilled)
+ * 1) placed <= 30 min ago AND unfulfilled -> allowed
+ * 2) placed  > 30 min ago                 -> NOT allowed (window expired,
+ *                                             regardless of fulfillment)
+ * 3) placed <= 30 min ago AND fulfilled   -> NOT allowed (already fulfilled)
  */
 const checkCancellationEligibility = (order) => {
   if (!order) {
@@ -44,12 +50,23 @@ const checkCancellationEligibility = (order) => {
     };
   }
 
-  if (isOrderFulfilled(order)) {
+  const withinWindow =
+    getMinutesSinceOrderPlaced(order.createdAt) <= CANCELLATION_WINDOW_MINUTES;
+
+  if (withinWindow && isOrderFulfilled(order)) {
     return {
       allowed: false,
       code: "ORDER_ALREADY_FULFILLED",
       message:
         "Your order has already been processed/fulfilled, so it can no longer be cancelled.",
+    };
+  }
+
+  if (!withinWindow) {
+    return {
+      allowed: false,
+      code: "CANCELLATION_WINDOW_EXPIRED",
+      message: `Orders can only be cancelled within ${CANCELLATION_WINDOW_MINUTES} minutes of being placed.`,
     };
   }
 
