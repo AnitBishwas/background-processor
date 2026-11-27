@@ -131,8 +131,10 @@ const triggerBackInStockMoengageEvent = async (payload) => {
       body: JSON.stringify(triggerPayload),
     });
     const response = await request.json();
-    if(response.data.triggered_status != 'SUCCESS'){
-      throw new Error("Failed to triggere moengage back in stock business event");
+    if (response.data.triggered_status != "SUCCESS") {
+      throw new Error(
+        "Failed to triggere moengage back in stock business event"
+      );
     }
   } catch (err) {
     throw new Error(

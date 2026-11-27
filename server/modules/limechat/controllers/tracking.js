@@ -34,7 +34,9 @@ const getOrderTrackingInfo = async (order) => {
 
     return tracking;
   } catch (err) {
-    throw new Error("Failed to get order tracking info reason --> " + err.message);
+    throw new Error(
+      "Failed to get order tracking info reason --> " + err.message
+    );
   }
 };
 

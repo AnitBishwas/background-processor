@@ -4,9 +4,9 @@ import {
 } from "./moe.js";
 const handleVariantBackInStock = async (payload) => {
   try {
-    if(payload.inventoryQuantity >= 100){
+    if (payload.inventoryQuantity >= 100) {
       await triggerBackInStockMoengageEvent(payload);
-      console.log("✅ Triggered Moengage back in stock event")
+      console.log("✅ Triggered Moengage back in stock event");
     }
   } catch (err) {
     throw new Error(

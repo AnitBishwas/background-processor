@@ -33,7 +33,6 @@ const pathAllowed = (pathname, allowedPrefixes) => {
 };
 
 const publicApiKeyAuth = async (req, res, next) => {
-
   // if (process.env.NODE_ENV === "dev") {
   //   return next();
   // }

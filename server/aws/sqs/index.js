@@ -25,6 +25,7 @@ import {
   handleCashbackReportGenerated,
 } from "../../modules/cashback/controllers/reports.js";
 import { handleVariantBackInStock } from "../../modules/backInStock/controllers.js";
+import { handleAccountMergeCashback } from "../../modules/cashback/controllers/mergeCustomer.js";
 
 // ["ORDER_CREATE","CASHBACK_PENDING_ASSIGNED","CASHBACK_UTILISED","ORDER_CANCEL","CASHBACK_CANCEL","ORDER_DELIVERED","CASHBACK_ASSIGN","ORDER_REFUND","CASHBACK_REFUND","CASHBACK_BULK_DISTRIBUTION","CASHBACK_Manual_DISTRIBUTION"]
 const sqs = new AWS.SQS();
@@ -244,6 +245,10 @@ const handleTopicMessage = async (topic, payload, meta = {}) => {
     case "VARIANT_BACK_IN_STOCK":
       await handleVariantBackInStock(payload);
       console.log("processed variant back in stock ✅");
+      break;
+    case "CUSTOMER_ACCOUNT_MERGE":
+      await handleAccountMergeCashback(payload);
+      console.log("processed customer accounts merge ✅");
       break;
     default:
       const err = new Error(`Unrecognised topic: "${topic}"`);
